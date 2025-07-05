@@ -1,5 +1,4 @@
-﻿Python==3.7.12
-# Flask及其扩展
+﻿# Flask及其扩展
 Flask==2.2.5
 Flask-CORS==5.0.0
 Flask-SQLAlchemy==3.0.5
