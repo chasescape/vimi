@@ -7,6 +7,21 @@ const router = createRouter({
             path: '/',
             name: 'home',
             component: () => import('../views/Home.vue')
+        },
+        {
+            path: '/resume',
+            name: 'resume',
+            component: () => import('../views/ResumePage.vue')
+        },
+        {
+            path: '/AIInterview',
+            name: 'AIInterview',
+            component: () => import('../views/AIInterview.vue')
+        },
+        {
+            path: '/interview-result',
+            name: 'interview-result',
+            component: () => import('../views/InterviewResult.vue')
         }
     ]
 })
