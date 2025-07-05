@@ -233,60 +233,151 @@
     <div class="modal device-check" v-if="showDeviceCheck">
       <div class="modal-content">
         <h2>设备检测</h2>
-        <div class="device-list">
-          <div class="device-item">
-            <i class="fas fa-microphone"></i>
-            <span>麦克风</span>
-            <select v-model="deviceStatus.microphone.selectedId">
-              <option v-for="device in deviceStatus.microphone.devices" 
-                      :key="device.deviceId" 
-                      :value="device.deviceId">
-                {{ device.label || '默认麦克风' }}
-              </option>
-            </select>
-            <button class="test-btn" 
-                    @click="testMicrophone"
-                    :class="{ 'testing': deviceStatus.microphone.testing }">
-              {{ deviceStatus.microphone.testing ? '停止' : '测试' }}
+        
+        <!-- 步骤指示器 -->
+        <div class="steps">
+          <div class="step" :class="{ active: currentStep === 1, completed: currentStep > 1 }">
+            <div class="step-number">1</div>
+            <div class="step-label">上传证件照</div>
+          </div>
+          <div class="step" :class="{ active: currentStep === 2, completed: currentStep > 2 }">
+            <div class="step-number">2</div>
+            <div class="step-label">设备检测</div>
+          </div>
+          <div class="step" :class="{ active: currentStep === 3, completed: currentStep > 3 }">
+            <div class="step-number">3</div>
+            <div class="step-label">身份验证</div>
+          </div>
+        </div>
+
+        <!-- 步骤1: 上传证件照 -->
+        <div v-if="currentStep === 1" class="step-content">
+          <div class="upload-section">
+            <div class="upload-preview" 
+                 :class="{ 'has-image': idPhotoUrl }"
+                 @click="triggerFileInput">
+              <img v-if="idPhotoUrl" :src="idPhotoUrl" alt="证件照预览" />
+              <div v-else class="upload-placeholder">
+                <i class="fas fa-id-card"></i>
+                <p>点击上传证件照</p>
+                <span>支持jpg、png格式</span>
+              </div>
+            </div>
+            <input 
+              type="file" 
+              ref="fileInput" 
+              accept="image/*" 
+              style="display: none"
+              @change="handleFileUpload"
+            />
+          </div>
+          <div class="step-buttons">
+            <button class="secondary-btn" @click="cancelDeviceCheck">取消</button>
+            <button 
+              class="primary-btn" 
+              :disabled="!idPhotoUrl"
+              @click="goToNextStep">
+              下一步
             </button>
           </div>
-          <div class="device-item">
-            <i class="fas fa-video"></i>
-            <span>摄像头</span>
-            <select v-model="deviceStatus.camera.selectedId">
-              <option v-for="device in deviceStatus.camera.devices" 
-                      :key="device.deviceId" 
-                      :value="device.deviceId">
-                {{ device.label || '默认摄像头' }}
-              </option>
-            </select>
-            <button class="test-btn" 
-                    @click="testCamera"
-                    :class="{ 'testing': deviceStatus.camera.testing }">
-              {{ deviceStatus.camera.testing ? '停止' : '测试' }}
-            </button>
-          </div>
-          <div class="device-item">
-            <i class="fas fa-wifi"></i>
-            <span>网络状态</span>
-            <div class="status-container">
-              <div class="status" :class="deviceStatus.network.status">
-                {{ deviceStatus.network.status === 'good' ? '良好' : 
-                   deviceStatus.network.status === 'poor' ? '一般' : '差' }}
+        </div>
+
+        <!-- 步骤2: 设备检测 -->
+        <div v-if="currentStep === 2" class="step-content">
+          <div class="device-list">
+            <!-- 麦克风检测 -->
+            <div class="device-item">
+              <i class="fas fa-microphone"></i>
+              <span>麦克风</span>
+              <select v-model="deviceStatus.microphone.selectedId">
+                <option v-for="device in deviceStatus.microphone.devices" 
+                        :key="device.deviceId" 
+                        :value="device.deviceId">
+                  {{ device.label || '默认麦克风' }}
+                </option>
+              </select>
+              <div class="test-controls">
+                <button class="test-btn" 
+                        @click="testMicrophone"
+                        :class="{ 'testing': deviceStatus.microphone.testing }">
+                  {{ deviceStatus.microphone.testing ? '停止' : '测试' }}
+                </button>
+                <div class="volume-indicator" v-if="deviceStatus.microphone.testing">
+                  <div class="volume-bar" :style="{ width: microphoneVolume + '%' }"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 摄像头检测 -->
+            <div class="device-item">
+              <i class="fas fa-video"></i>
+              <span>摄像头</span>
+              <select v-model="deviceStatus.camera.selectedId">
+                <option v-for="device in deviceStatus.camera.devices" 
+                        :key="device.deviceId" 
+                        :value="device.deviceId">
+                  {{ device.label || '默认摄像头' }}
+                </option>
+              </select>
+              <div class="camera-preview" v-if="deviceStatus.camera.testing">
+                <video ref="cameraPreview" autoplay playsinline muted></video>
               </div>
               <button class="test-btn" 
-                      @click="testNetwork"
-                      :disabled="deviceStatus.network.testing">
-                测试
+                      @click="testCamera"
+                      :class="{ 'testing': deviceStatus.camera.testing }">
+                {{ deviceStatus.camera.testing ? '停止' : '测试' }}
               </button>
             </div>
+
+            <!-- 网络检测 -->
+            <div class="device-item">
+              <i class="fas fa-wifi"></i>
+              <span>网络状态</span>
+              <div class="status-container">
+                <div class="status" :class="deviceStatus.network.status">
+                  {{ deviceStatus.network.status === 'good' ? '良好' : 
+                     deviceStatus.network.status === 'poor' ? '一般' : '差' }}
+                </div>
+                <div class="network-speed" v-if="deviceStatus.network.speed">
+                  {{ deviceStatus.network.speed }} Mbps
+                </div>
+                <button class="test-btn" 
+                        @click="testNetwork"
+                        :disabled="deviceStatus.network.testing">
+                  测试
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-buttons">
+            <button class="secondary-btn" @click="currentStep--">上一步</button>
+            <button 
+              class="primary-btn" 
+              :disabled="!isDeviceTestComplete"
+              @click="goToNextStep">
+              下一步
+            </button>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="secondary-btn" @click="cancelDeviceCheck">取消</button>
-          <button class="primary-btn" @click="startInterview">开始面试</button>
+
+        <!-- 步骤3: 身份验证 -->
+        <div v-if="currentStep === 3" class="step-content">
+          <FaceVerification 
+            @verification-success="handleVerificationSuccess"
+            @start-interview="startInterview" 
+          />
+          
+          <div class="step-buttons">
+            <button class="secondary-btn" @click="currentStep--">上一步</button>
+          </div>
         </div>
       </div>
+    </div>
+
+    <!-- 面试界面 -->
+    <div v-if="!showDeviceCheck" class="interview-container">
+      <video ref="localVideo" autoplay playsinline muted></video>
     </div>
   </div>
 </template>
@@ -798,70 +889,267 @@
   padding: 30px;
 }
 
-.device-list {
+.steps {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0 30px;
+  position: relative;
+}
+
+.steps::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 40px;
+  right: 40px;
+  height: 2px;
+  background: rgba(76, 201, 240, 0.1);
+  z-index: 1;
+}
+
+.step {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(76, 201, 240, 0.1);
+  border: 2px solid rgba(76, 201, 240, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.step.active .step-number {
+  background: rgba(76, 201, 240, 0.2);
+  border-color: #4CC9F0;
+  color: #fff;
+}
+
+.step.completed .step-number {
+  background: #4CC9F0;
+  border-color: #4CC9F0;
+  color: #fff;
+}
+
+.step-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.step.active .step-label,
+.step.completed .step-label {
+  color: #fff;
+}
+
+/* 上传区域样式 */
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.upload-preview {
+  width: 240px;
+  height: 320px;
+  border: 2px dashed rgba(76, 201, 240, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(76, 201, 240, 0.1);
+}
+
+.upload-preview:hover {
+  border-color: #4CC9F0;
+  background: rgba(76, 201, 240, 0.15);
+}
+
+.upload-preview.has-image {
+  border-style: solid;
+}
+
+.upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-placeholder {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upload-placeholder i {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.upload-placeholder span {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* 设备测试样式 */
+.test-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.volume-indicator {
+  width: 100px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.volume-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4CC9F0, #4361EE);
+  border-radius: 3px;
+  transition: width 0.1s;
+}
+
+.camera-preview {
+  width: 160px;
+  height: 90px;
+  background: #000;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.camera-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 验证区域样式 */
+.verify-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
   margin: 20px 0;
 }
 
-.device-item {
+.verify-preview {
   display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border-bottom: 1px solid rgba(76, 201, 240, 0.2);
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
-.device-item select {
-  flex: 1;
+.id-photo,
+.live-photo {
+  width: 200px;
+  height: 260px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(15, 15, 27, 0.5);
+  position: relative;
+}
+
+.id-photo img,
+.live-photo img,
+.live-photo video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.id-photo span,
+.live-photo span {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   padding: 8px;
-  border-radius: 5px;
-  background: rgba(76, 201, 240, 0.1);
-  border: 1px solid rgba(76, 201, 240, 0.3);
+  background: rgba(15, 15, 27, 0.8);
   color: #fff;
-}
-
-.test-btn {
-  padding: 6px 12px;
-  border-radius: 5px;
-  border: 1px solid rgba(76, 201, 240, 0.3);
-  background: rgba(76, 201, 240, 0.1);
-  color: #fff;
-  cursor: pointer;
-}
-
-.status {
-  padding: 4px 8px;
-  border-radius: 4px;
   font-size: 12px;
+  text-align: center;
 }
 
-.status.good {
-  background: rgba(46, 213, 115, 0.2);
+.verify-status {
+  text-align: center;
+}
+
+.status-text {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.status-text.verifying {
+  color: #4CC9F0;
+}
+
+.status-text.success {
   color: #2ed573;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 20px;
+.status-text.error {
+  color: #ff4757;
 }
 
-.secondary-btn, .primary-btn {
-  padding: 10px 20px;
+.confidence {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.verify-btn {
+  padding: 12px 24px;
   border-radius: 5px;
-  cursor: pointer;
-}
-
-.secondary-btn {
-  background: rgba(76, 201, 240, 0.1);
-  border: 1px solid rgba(76, 201, 240, 0.3);
-  color: #fff;
-}
-
-.primary-btn {
   background: #4CC9F0;
   border: none;
   color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background: #3ab9e0;
+}
+
+.verify-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.verify-btn.verifying {
+  background: #ff4757;
+}
+
+/* 步骤按钮样式 */
+.step-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.step-content {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes pulse {
@@ -1077,16 +1365,44 @@
   0%, 100% { height: 4px; }
   50% { height: 12px; }
 }
+
+.error-message {
+  color: #ff4757;
+  font-size: 14px;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(255, 71, 87, 0.1);
+  border-radius: 5px;
+}
+
+.device-item .status.verified {
+  background: rgba(46, 213, 115, 0.2);
+  color: #2ed573;
+}
+
+.device-item .status.error {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+}
 </style>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { userService } from '../services/userService'
+import http from '../config/axios'
+import FaceVerification from '../components/FaceVerification.vue'
 
 const router = useRouter()
 const showDeviceCheck = ref(true)
+const currentStep = ref(1)
 const localVideo = ref<HTMLVideoElement | null>(null)
 const localStream = ref<MediaStream | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
+const cameraPreview = ref<HTMLVideoElement | null>(null)
+const verifyVideo = ref<HTMLVideoElement | null>(null)
+const idPhotoUrl = ref<string | null>(null)
+const microphoneVolume = ref(0)
 
 // 设备状态
 const deviceStatus = ref({
@@ -1104,9 +1420,61 @@ const deviceStatus = ref({
   },
   network: {
     status: 'good' as 'good' | 'poor' | 'bad',
+    speed: null as number | null,
     testing: false
+  },
+  faceVerify: {
+    verified: false,
+    verifying: false,
+    error: null as string | null,
+    livePhotoUrl: null as string | null,
+    confidence: null as number | null
   }
 })
+
+// 计算设备测试是否完成
+const isDeviceTestComplete = computed(() => {
+  return deviceStatus.value.microphone.devices.length > 0 &&
+         deviceStatus.value.camera.devices.length > 0 &&
+         deviceStatus.value.network.status !== 'bad'
+})
+
+// 触发文件选择
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+// 处理文件上传
+const handleFileUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+
+  const file = input.files[0]
+  
+  try {
+    // 上传到服务器并获取Base64数据
+    const base64Data = await userService.uploadIdPhoto(file)
+    
+    // 更新预览
+    idPhotoUrl.value = `data:${file.type};base64,${base64Data}`
+    
+  } catch (error) {
+    console.error('上传证件照失败:', error)
+    alert(error instanceof Error ? error.message : '上传证件照失败，请重试')
+    
+    // 清除文件选择
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
+    idPhotoUrl.value = null
+  }
+}
+
+// 添加错误处理函数
+const handleError = (message: string) => {
+  alert(message)
+  currentStep.value = 1 // 返回第一步
+}
 
 // 获取设备列表
 const getDevices = async () => {
@@ -1137,6 +1505,7 @@ const testMicrophone = async () => {
         deviceStatus.value.microphone.stream = null
       }
       deviceStatus.value.microphone.testing = false
+      microphoneVolume.value = 0
       return
     }
 
@@ -1148,6 +1517,28 @@ const testMicrophone = async () => {
       }
     })
     deviceStatus.value.microphone.stream = stream
+
+    // 创建音频分析器
+    const audioContext = new AudioContext()
+    const analyser = audioContext.createAnalyser()
+    const microphone = audioContext.createMediaStreamSource(stream)
+    microphone.connect(analyser)
+    analyser.fftSize = 256
+    const bufferLength = analyser.frequencyBinCount
+    const dataArray = new Uint8Array(bufferLength)
+
+    // 更新音量指示器
+    const updateVolume = () => {
+      if (!deviceStatus.value.microphone.testing) return
+      
+      analyser.getByteFrequencyData(dataArray)
+      const average = dataArray.reduce((acc, val) => acc + val, 0) / bufferLength
+      microphoneVolume.value = Math.min(100, average * 2)
+      
+      requestAnimationFrame(updateVolume)
+    }
+    updateVolume()
+
   } catch (error) {
     console.error('测试麦克风失败:', error)
     deviceStatus.value.microphone.testing = false
@@ -1171,10 +1562,18 @@ const testCamera = async () => {
     deviceStatus.value.camera.testing = true
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: deviceStatus.value.camera.selectedId
+        deviceId: deviceStatus.value.camera.selectedId,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
       }
     })
     deviceStatus.value.camera.stream = stream
+
+    // 显示预览
+    if (cameraPreview.value) {
+      cameraPreview.value.srcObject = stream
+    }
+
   } catch (error) {
     console.error('测试摄像头失败:', error)
     deviceStatus.value.camera.testing = false
@@ -1185,23 +1584,30 @@ const testCamera = async () => {
 const testNetwork = async () => {
   try {
     deviceStatus.value.network.testing = true
+    deviceStatus.value.network.speed = null
     
-    // 使用简单的网络测试方法
-    const startTime = Date.now()
-    try {
-      await fetch('https://www.google.com/favicon.ico')
-      const endTime = Date.now()
-      const duration = endTime - startTime
+    // 使用大文件测试下载速度
+    const startTime = performance.now()
+    const response = await fetch('https://speed.cloudflare.com/__down?bytes=26214400') // 25MB
+    const endTime = performance.now()
+    
+    if (response.ok) {
+      const duration = (endTime - startTime) / 1000 // 转换为秒
+      const bytes = await response.blob().then(b => b.size)
+      const bitsPerSecond = (bytes * 8) / duration
+      const megabitsPerSecond = bitsPerSecond / 1000000
       
-      if (duration < 100) {
+      deviceStatus.value.network.speed = Math.round(megabitsPerSecond * 100) / 100
+      
+      if (megabitsPerSecond >= 10) {
         deviceStatus.value.network.status = 'good'
-      } else if (duration < 300) {
+      } else if (megabitsPerSecond >= 5) {
         deviceStatus.value.network.status = 'poor'
       } else {
         deviceStatus.value.network.status = 'bad'
       }
-    } catch {
-      deviceStatus.value.network.status = 'bad'
+    } else {
+      throw new Error('网络测试失败')
     }
   } catch (error) {
     console.error('测试网络失败:', error)
@@ -1211,26 +1617,125 @@ const testNetwork = async () => {
   }
 }
 
+// 进行人脸验证
+const verifyFace = async () => {
+  try {
+    if (!idPhotoUrl.value) {
+      throw new Error('请先上传证件照')
+    }
+
+    deviceStatus.value.faceVerify.verifying = true
+    deviceStatus.value.faceVerify.error = null
+    deviceStatus.value.faceVerify.livePhotoUrl = null
+    deviceStatus.value.faceVerify.confidence = null
+
+    // 获取摄像头流
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: deviceStatus.value.camera.selectedId,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    })
+
+    // 显示预览
+    if (verifyVideo.value) {
+      verifyVideo.value.srcObject = stream
+    }
+
+    // 等待1秒让用户准备
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    // 捕获图像
+    const canvas = document.createElement('canvas')
+    canvas.width = verifyVideo.value!.videoWidth
+    canvas.height = verifyVideo.value!.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('无法创建canvas上下文')
+
+    ctx.drawImage(verifyVideo.value!, 0, 0)
+    const imageData = canvas.toDataURL('image/jpeg')
+    deviceStatus.value.faceVerify.livePhotoUrl = imageData
+
+    // 准备API请求数据
+    const idPhotoBase64 = idPhotoUrl.value.split(',')[1]
+    const livePhotoBase64 = imageData.split(',')[1]
+
+    // 停止视频流
+    stream.getTracks().forEach(track => track.stop())
+
+    // 调用后端API进行人脸比对
+    const response = await http.post('/api/vision/face/verify', {
+      id_photo: idPhotoBase64,
+      live_photo: livePhotoBase64
+    })
+
+    const result = response.data
+    
+    if (!result.success) {
+      throw new Error(result.error || '验证失败')
+    }
+
+    deviceStatus.value.faceVerify.verified = result.is_same_person
+    deviceStatus.value.faceVerify.confidence = result.confidence
+
+    if (!result.is_same_person) {
+      deviceStatus.value.faceVerify.error = '验证失败，请确保本人操作'
+    }
+
+  } catch (error) {
+    console.error('人脸验证失败:', error)
+    deviceStatus.value.faceVerify.error = error instanceof Error ? error.message : '验证失败，请重试'
+    deviceStatus.value.faceVerify.verified = false
+  } finally {
+    deviceStatus.value.faceVerify.verifying = false
+  }
+}
+
+// 获取验证状态文本
+const getVerifyStatusText = () => {
+  if (deviceStatus.value.faceVerify.verifying) return '正在验证...'
+  if (deviceStatus.value.faceVerify.verified) return '验证通过'
+  if (deviceStatus.value.faceVerify.error) return '验证失败'
+  return '等待验证'
+}
+
+// 获取验证按钮文本
+const getVerifyButtonText = () => {
+  if (deviceStatus.value.faceVerify.verifying) return '验证中...'
+  if (deviceStatus.value.faceVerify.verified) return '已验证'
+  return '开始验证'
+}
+
+// 下一步
+const goToNextStep = () => {
+  if (currentStep.value < 3) {
+    currentStep.value++
+  }
+}
+
 // 开始面试
 const startInterview = async () => {
+  console.log('开始面试')
   try {
     // 确保设备可用
     const microphoneAvailable = deviceStatus.value.microphone.devices.length > 0
     const cameraAvailable = deviceStatus.value.camera.devices.length > 0
     const networkGood = deviceStatus.value.network.status !== 'bad'
+    const faceVerified = deviceStatus.value.faceVerify.verified
 
     if (!microphoneAvailable || !cameraAvailable || !networkGood) {
       alert('请确保设备正常且网络状态良好')
       return
     }
 
-    // 停止测试流
-    if (deviceStatus.value.microphone.stream) {
-      deviceStatus.value.microphone.stream.getTracks().forEach(track => track.stop())
+    if (!faceVerified) {
+      alert('请先完成人脸验证')
+      return
     }
-    if (deviceStatus.value.camera.stream) {
-      deviceStatus.value.camera.stream.getTracks().forEach(track => track.stop())
-    }
+
+    // 停止所有测试流
+    stopAllStreams()
 
     // 获取正式的媒体流
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -1252,6 +1757,7 @@ const startInterview = async () => {
 
     // 关闭设备检测弹窗
     showDeviceCheck.value = false
+    console.log('设备检测弹窗已关闭')
 
   } catch (error) {
     console.error('开始面试失败:', error)
@@ -1259,9 +1765,8 @@ const startInterview = async () => {
   }
 }
 
-// 取消设备检测
-const cancelDeviceCheck = () => {
-  // 停止所有媒体流
+// 停止所有媒体流
+const stopAllStreams = () => {
   if (deviceStatus.value.microphone.stream) {
     deviceStatus.value.microphone.stream.getTracks().forEach(track => track.stop())
   }
@@ -1272,16 +1777,14 @@ const cancelDeviceCheck = () => {
     localStream.value.getTracks().forEach(track => track.stop())
   }
   
-  // 重置状态
   deviceStatus.value.microphone.testing = false
   deviceStatus.value.camera.testing = false
-  deviceStatus.value.network.testing = false
   localStream.value = null
-  
-  // 关闭弹窗
-  showDeviceCheck.value = false
-  
-  // 返回上一页
+}
+
+// 取消设备检测
+const cancelDeviceCheck = () => {
+  stopAllStreams()
   router.back()
 }
 
@@ -1290,13 +1793,20 @@ const goBack = () => {
   router.back()
 }
 
+// 处理验证成功
+const handleVerificationSuccess = (result: { confidence: number }) => {
+  console.log('验证成功，相似度:', result.confidence)
+  deviceStatus.value.faceVerify.verified = true
+  deviceStatus.value.faceVerify.confidence = result.confidence
+}
+
 // 页面加载时获取设备列表
-getDevices()
+onMounted(() => {
+  getDevices()
+})
 
 // 页面卸载时清理资源
 onUnmounted(() => {
-  if (localStream.value) {
-    localStream.value.getTracks().forEach(track => track.stop())
-  }
+  stopAllStreams()
 })
 </script> 
