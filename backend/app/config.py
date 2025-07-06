@@ -10,6 +10,11 @@ class Config:
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    
+    # 讯飞API配置
+    XUNFEI_APPID = 'af632c9a'
+    XUNFEI_APIKEY = '0f38b7916bc3ee000443a308b1d0d8da'
+    XUNFEI_APISECRET = 'ZGY3MGMyZjM1NjhjNjU3MzU3ZWQ0MDMw'
 
 class DevelopmentConfig(Config):
     DEBUG = True

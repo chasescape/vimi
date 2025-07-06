@@ -299,72 +299,40 @@
 
 
 
-    
-    <!-- 详细分析面板 -->
-    <transition name="slide-up">
-      <div class="analysis-panel" v-if="showAnalysis">
-        <div class="panel-header">
-          <h4><i class="fas fa-chart-pie"></i> 面试分析报告</h4>
-          <button class="close-btn" @click="showAnalysis = false">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="analysis-content">
-          <div class="analysis-section">
-            <h5><i class="fas fa-brain"></i> 情绪波动分析</h5>
-            <div class="chart-container" ref="emotionTrendChart"></div>
-          </div>
-          <div class="analysis-section">
-            <h5><i class="fas fa-code"></i> 技能评估雷达图</h5>
-            <div class="skills-radar" ref="skillsRadarChart"></div>
-          </div>
-          <div class="analysis-section">
-            <h5><i class="fas fa-chart-line"></i> 综合评分</h5>
-            <div class="progress-bars">
-              <div class="progress-item" v-for="(item, index) in analysisData" :key="index">
-                <div class="progress-label">
-                  <span>{{ item.label }}</span>
-                  <span>{{ item.value }}%</span>
+            </div>
+
+            <!-- 网络检测 -->
+            <div class="device-item">
+              <i class="fas fa-wifi"></i>
+              <span>网络状态</span>
+              <div class="status-container">
+                <div class="status" :class="deviceStatus.network.status">
+                  {{ deviceStatus.network.status === 'good' ? '良好' : 
+                     deviceStatus.network.status === 'poor' ? '一般' : '差' }}
                 </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" 
-                       :style="{width: item.value + '%', background: getProgressColor(item.value)}"></div>
+                <div class="network-speed" v-if="deviceStatus.network.speed">
+                  {{ deviceStatus.network.speed }} Mbps
                 </div>
+                <button class="test-btn" 
+                        @click="testNetwork"
+                        :disabled="deviceStatus.network.testing">
+                  测试
+                </button>
               </div>
             </div>
-            <div class="analysis-summary">
-              <h6><i class="fas fa-file-alt"></i> 综合评价</h6>
-              <p>{{ analysisSummary }}</p>
-            </div>
           </div>
-        </div>
-      </div>
-    </transition>
 
-    <!-- 结束面试确认对话框 -->
-    <transition name="fade">
-      <div class="modal-overlay" v-if="showEndInterviewModal">
-        <div class="modal-content">
-          <h3><i class="fas fa-exclamation-triangle"></i> 确认结束面试</h3>
-          <p>您确定要结束本次面试吗？所有数据将会被保存。</p>
-          <div class="modal-actions">
-            <button class="modal-btn cancel" @click="showEndInterviewModal = false">
-              取消
-            </button>
-            <button class="modal-btn confirm" @click="confirmEndInterview">
-              确认结束
+          <div class="step-buttons">
+            <button class="secondary-btn" @click="currentStep--">上一步</button>
+            <button 
+              class="primary-btn" 
+              :disabled="!isDeviceTestComplete"
+              @click="goToNextStep">
+              下一步
             </button>
           </div>
         </div>
-      </div>
-    </transition>
-    
-    <!-- 系统通知 -->
-    <transition name="fade">
-      <div class="notification" v-if="notification.show">
-        <i :class="notification.icon"></i> {{ notification.text }}
-      </div>
-    </transition>
+
   </div>
 </template>
 
@@ -2613,94 +2581,12 @@ textarea {
   gap: 10px;
 }
 
-.modal-btn {
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 14px;
 
-  &.cancel {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
-
-  &.confirm {
-    background: var(--danger-color);
-    border: none;
-    color: white;
-
-    &:hover {
- background: rgba(255, 0, 0, 1);  
-
-
-
-    }
-  }
-}
-
-.notification {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  padding: 10px 20px;
-  box-shadow: 0 4px 15px var(--shadow-color);
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-  z-index: 3000;
-  animation: notificationIn 0.3s ease;
-  
-  i {
-    color: var(--accent-color);
-  }
-}
 
-@keyframes notificationIn {
-  from { opacity: 0; transform: translate(-50%, 20px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
-}
-
-/* 过渡动画 */
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.slide-up-enter-from,
-.slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.3s ease;
-}
-
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(20px);
 }
 
 .panel-expand-enter-active,
@@ -3139,70 +3025,13 @@ body.screen-expanded {
   
 }
 
-.message.ai .message-content {
-  background: white;
-  border: 1px solid #e1e8ed;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-   color: #000; /* 新增这行 */
-}
 
-/* 消息时间 */
-.message-time {
-  display: block;
-  font-size: 11px;
-  opacity: 0.7;
-  margin-top: 6px;
-  text-align: right;
-}
-
-.message.user .message-time {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.message.ai .message-time {
-  color: #7f8fa4;
-}
-
-/* 输入区域 */
-.assistant-input {
-  padding: 16px;
-  border-top: 1px solid #e1e8ed;
-  background: white;
-  display: flex;
-  gap: 10px;
-}
-
-.assistant-input input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e1e8ed;
-  border-radius: 24px;
-  outline: none;
-  font-size: 14px;
-  transition: border 0.3s, box-shadow 0.3s;
-}
 
 .assistant-input input:focus {
   border-color: #1a73e8;
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
-.assistant-input button {
-  width: 48px;
-  height: 48px;
-  border: none;
-  background: #1a73e8;
-  color: white;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.3s, transform 0.2s;
-}
-
-.assistant-input button:hover {
-  background: #1557b0;
-  transform: scale(1.05);
-}
 
 /* 通知徽章 */
 .notification-badge {
@@ -3221,18 +3050,14 @@ body.screen-expanded {
   font-weight: bold;
 }
 
-/* 滚动条样式 */
-.assistant-messages::-webkit-scrollbar {
-  width: 6px;
-}
+
 
 .assistant-messages::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
 }
 
-.assistant-messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+
 }
 
 
@@ -3246,20 +3071,3 @@ body.screen-expanded {
   width: 100%;
   height: 100%;
 }
-
-/* 放大实现方案 */
-.avatar-scale-wrapper {
-  transform: scale(1.5); /* 关键：仅视觉放大1.5倍 */
-  transform-origin: center;
-  padding: 10px; /* 抵消放大导致的边缘裁剪 */
-}
-
-.avatar-img {
-  width: 100px; /* 保持原始尺寸 */
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-</style>
