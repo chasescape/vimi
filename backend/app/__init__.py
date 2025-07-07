@@ -67,12 +67,16 @@ def create_app(config_name='default'):
         # 导入和注册蓝图
         from .routes.vision import vision_bp
         from .routes.user import user_bp
-        from .routes import main
-
+        from .routes.main import bp as main_bp
+        from .routes.tts import tts_bp
+        from .routes.asr import asr_bp
+        
+        app.register_blueprint(asr_bp, url_prefix='/api/asr')
         app.register_blueprint(vision_bp, url_prefix='/api/vision')
         app.register_blueprint(user_bp, url_prefix='/api/user')
-        app.register_blueprint(main.bp)
-
+        app.register_blueprint(tts_bp, url_prefix='/api/tts')
+        app.register_blueprint(main_bp)
+    
     # 错误处理
     @app.errorhandler(404)
     def not_found(error):
