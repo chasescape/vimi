@@ -240,5 +240,5 @@ if __name__ == '__main__':
         appid='af632c9a',
         apisecret='ZGY3MGMyZjM1NjhjNjU3MzU3ZWQ0MDMw',
         apikey='0f38b7916bc3ee000443a308b1d0d8da',
-        img_path=r'D:\whisper\Pictures\Saved Pictures\微信图片_20250706034858.jpg',
+        img_path=r'D:\whisper\Pictures\Saved Pictures\微信图片_20231109130648.jpg',
     )
