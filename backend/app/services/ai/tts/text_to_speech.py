@@ -206,7 +206,7 @@ class TextToSpeech:
 
         thread.start_new_thread(run, ())
 
-
+        
 class Ws_Param(object):
     """WebSocket参数类"""
     def __init__(self, APPID, APIKey, APISecret, Text):
@@ -219,8 +219,8 @@ class Ws_Param(object):
         self.CommonArgs = {"app_id": self.APPID, "status": 2}
         # 业务参数(business)，更多个性化参数可在官网查看
         self.BusinessArgs = {
-            "tts": {
-                "vcn": "x5_lingfeiyi_flow",  # 发音人参数，更换不同的发音人会有不同的音色效果
+        "tts": {
+            "vcn": "x5_lingfeiyi_flow",  # 发音人参数，更换不同的发音人会有不同的音色效果
                 "volume": 50,    # 设置音量大小
                 "rhy": 0,   # 是否返回拼音标注 0:不返回拼音, 1:返回拼音（纯文本格式，utf8编码）
                 "speed": 50,    # 设置合成语速，值越大，语速越快
@@ -228,25 +228,25 @@ class Ws_Param(object):
                 "bgs": 0,   # 背景音 0:无背景音, 1:内置背景音1, 2:内置背景音2
                 "reg": 0,   # 英文发音方式 0:自动判断处理，如果不确定将按照英文词语拼写处理（缺省）, 1:所有英文按字母发音, 2:自动判断处理，如果不确定将按照字母朗读
                 "rdn": 0,   # 合成音频数字发音方式 0:自动判断, 1:完全数值, 2:完全字符串, 3:字符串优先
-                "audio": {
+            "audio": {
                     "encoding": "lame",  # 合成音频格式， lame 合成音频格式为mp3
                     "sample_rate": 24000,  # 合成音频采样率， 16000, 8000, 24000
-                    "channels": 1,  # 音频声道数
+                "channels": 1,  # 音频声道数
                     "bit_depth": 16, # 合成音频位深 ：16, 8
-                    "frame_size": 0
-                }
+                "frame_size": 0
             }
         }
+    }
         
         self.Data = {
-            "text": {
-                "encoding": "utf8",
-                "compress": "raw",
-                "format": "plain",
-                "status": 2,
-                "seq": 0,
-                "text": str(base64.b64encode(self.Text.encode('utf-8')), "UTF8")   # 待合成文本base64格式
-            }
+        "text": {
+            "encoding": "utf8",
+            "compress": "raw",
+            "format": "plain",
+            "status": 2,
+            "seq": 0,
+            "text": str(base64.b64encode(self.Text.encode('utf-8')), "UTF8")   # 待合成文本base64格式
+        }
         }
 
     def create_url(self):

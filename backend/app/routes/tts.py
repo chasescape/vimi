@@ -4,8 +4,14 @@ import os
 from datetime import datetime
 from app.models.user import SpeechRecord
 from app import db
-from .text_to_speech import TextToSpeech
-
+from ..services.ai.tts.text_to_speech import TextToSpeech
+from flask import Blueprint, request, jsonify
+from flask_socketio import Namespace, emit
+from ..services.ai.tts.text_to_speech import TextToSpeech
+from app import socketio
+import base64
+import tempfile
+import os
 tts_bp = Blueprint('tts', __name__)
 
 # 科大讯飞语音合成配置
@@ -23,7 +29,7 @@ text_to_speech = TextToSpeech(
 )
 
 # 文件上传配置
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'app/uploads'
 ALLOWED_EXTENSIONS = {'txt', 'md', 'doc', 'docx'}
 
 # 创建上传目录
@@ -263,3 +269,41 @@ def get_synthesis_record(record_id):
         'user_id': record.user_id,
         'created_at': record.created_at.isoformat()
     })
+
+class TTSStreamNamespace(Namespace):
+    def on_connect(self):
+        print('客户端已连接')
+        self.text_buffer = ''
+
+    def on_disconnect(self):
+        print('客户端已断开')
+        self.text_buffer = ''
+
+    def on_text_stream(self, data):
+        # data: {"text": "本次的一段文本", "is_last": false}
+        text = data.get('text', '')
+        is_last = data.get('is_last', False)
+        print('收到文本片段:', text)
+        self.text_buffer += text
+        if is_last:
+            # 合成全部文本
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as tmpfile:
+                output_path = tmpfile.name
+            result = text_to_speech.synthesize_text(self.text_buffer, output_path)
+            if result['success']:
+                with open(output_path, 'rb') as f:
+                    audio_bytes = f.read()
+                audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+                emit('tts_audio', {'audio': audio_base64, 'is_last': True})
+                os.remove(output_path)
+            else:
+                emit('tts_error', {'error': result['error']})
+            self.text_buffer = ''
+        else:
+            # 可以选择返回进度或不返回
+            emit('tts_progress', {'received': len(self.text_buffer)})
+
+# 注册命名空间
+
+def register_tts_stream_namespace():
+    socketio.on_namespace(TTSStreamNamespace('/api/tts/stream')) 
