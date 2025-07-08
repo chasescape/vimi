@@ -13,9 +13,20 @@ const instance = axios.create({
     withCredentials: true
 });
 
+// 从localStorage获取token
+const getToken = () => {
+    return localStorage.getItem('token');
+};
+
 // 请求拦截器
 instance.interceptors.request.use(
     (config) => {
+        // 添加认证token
+        const token = getToken();
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+
         // 添加调试信息
         console.log('发送请求:', {
             url: config.url,
@@ -51,15 +62,23 @@ instance.interceptors.response.use(
                 headers: error.response.headers
             });
 
-            switch (error.response.status) {
-                case 404:
-                    console.error('请求的资源不存在');
-                    break;
-                case 500:
-                    console.error('服务器错误');
-                    break;
-                default:
-                    console.error('网络请求失败:', error.response.data?.error || '未知错误');
+            // 处理401未授权错误
+            if (error.response.status === 401) {
+                console.error('未授权访问，请检查认证状态');
+                // 可以在这里处理token过期等情况
+                // 例如：重定向到登录页面
+                // window.location.href = '/login';
+            } else {
+                switch (error.response.status) {
+                    case 404:
+                        console.error('请求的资源不存在');
+                        break;
+                    case 500:
+                        console.error('服务器错误');
+                        break;
+                    default:
+                        console.error('网络请求失败:', error.response.data?.error || '未知错误');
+                }
             }
         } else if (error.request) {
             // 请求发出但没有收到响应
