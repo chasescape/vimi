@@ -70,11 +70,13 @@ def create_app(config_name='default'):
         from .routes.main import bp as main_bp
         from .routes.tts import tts_bp
         from .routes.asr import asr_bp
+        from .routes.ai.spark import spark_bp
         
         app.register_blueprint(asr_bp, url_prefix='/api/asr')
         app.register_blueprint(vision_bp, url_prefix='/api/vision')
         app.register_blueprint(user_bp, url_prefix='/api/user')
         app.register_blueprint(tts_bp, url_prefix='/api/tts')
+        app.register_blueprint(spark_bp, url_prefix='/api/spark')
         app.register_blueprint(main_bp)
     
     # 错误处理
