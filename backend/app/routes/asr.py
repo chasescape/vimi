@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from app.models.user import SpeechRecord
 from app import db
-from .speech_recognition import SpeechRecognition
+from ..services.ai.asr.speech_recognition import SpeechRecognition
 
 asr_bp = Blueprint('asr', __name__)
 
@@ -23,7 +23,7 @@ speech_recognizer = SpeechRecognition(
 )
 
 # 文件上传配置
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'app/uploads'
 ALLOWED_EXTENSIONS = {'wav', 'mp3', 'm4a', 'aac', 'flac', 'webm'}
 
 # 创建上传目录
