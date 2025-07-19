@@ -1,8 +1,8 @@
-from flask import Blueprint, request, jsonify
-from werkzeug.utils import secure_filename
+from flask import Blueprint, request, jsonify, send_file
 import os
-from datetime import datetime
-from app.models.user import SpeechRecord
+from app.services.ai.tts.text_to_speech import TextToSpeech
+from app.utils.validators import validate_text
+from app.models.speech import SpeechRecord
 from app import db
 from ..services.ai.tts.text_to_speech import TextToSpeech
 from flask import Blueprint, request, jsonify
@@ -73,75 +73,54 @@ def upload_text():
 
 @tts_bp.route('/synthesize', methods=['POST'])
 def synthesize_speech():
-    """文字转语音API"""
+    """文本转语音接口"""
     try:
-        print("=== 文字转语音API被调用 ===")
         data = request.get_json()
-        print(f"接收到的数据: {data}")
+        text = data.get('text', '')
         
-        text = data.get('text')
-        user_id = data.get('user_id')
-        output_filename = data.get('output_filename')
-        
-        print(f"文本内容: {text[:50]}..." if text else "无文本")
-        print(f"用户ID: {user_id}")
-        print(f"输出文件名: {output_filename}")
-        
-        if not text or not text.strip():
-            print("错误: 文本内容是必需的")
-            return jsonify({'error': '文本内容是必需的'}), 400
-        
-        # 生成输出文件路径
-        if output_filename:
-            output_file_path = os.path.join(UPLOAD_FOLDER, output_filename)
-        else:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_file_path = os.path.join(UPLOAD_FOLDER, f"synthesized_{timestamp}.mp3")
-        
-        print(f"开始文字转语音: {text[:50]}...")
-        print(f"输出文件: {output_file_path}")
-        
-        # 执行文字转语音
-        result = text_to_speech.synthesize_text(text, output_file_path)
-        
-        print(f"合成结果: {result}")
-        
-        if result['success']:
-            # 获取音频文件大小
-            file_size = os.path.getsize(output_file_path) if os.path.exists(output_file_path) else 0
-            
-            # 保存合成记录到数据库
-            speech_record = SpeechRecord(
-                audio_file=output_file_path,
-                recognized_text=text,  # 对于TTS，这里存储原始文本
-                user_id=user_id
-            )
-            db.session.add(speech_record)
-            db.session.commit()
-            
-            print("合成成功，记录已保存")
-            return jsonify({
-                'success': True,
-                'audio_file_path': output_file_path,
-                'audio_url': f'/uploads/{os.path.basename(output_file_path)}',
-                'file_size': file_size,
-                'record_id': speech_record.id,
-                'duration': 0.0  # TODO: 计算音频时长
-            })
-        else:
-            # 增强错误提示
-            error_msg = result['error'] or '合成失败，请检查文本内容或网络连接。'
-            print(f"合成失败: {error_msg}")
+        # 验证文本
+        if not validate_text(text):
             return jsonify({
                 'success': False,
-                'error': error_msg
+                'message': '无效的文本内容'
             }), 400
             
+        # 初始化TTS服务
+        tts_service = TextToSpeech(
+            app_id=XUNFEI_APPID,
+            api_key=XUNFEI_APIKEY,
+            api_secret=XUNFEI_APISECRET
+        )
+        
+        # 生成语音文件
+        result = tts_service.synthesize_text(text)
+        
+        if not result['success']:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 500
+        
+        # 保存记录
+        record = SpeechRecord(
+            audio_file=result['audio_file_path'],
+            recognized_text=text
+        )
+        db.session.add(record)
+        db.session.commit()
+        
+        return send_file(
+            result['audio_file_path'],
+            mimetype='audio/mp3',
+            as_attachment=True,
+            download_name='synthesized_speech.mp3'
+        )
+        
     except Exception as e:
-        print(f"文字转语音异常: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'文字转语音失败: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'message': f'语音合成失败: {str(e)}'
+        }), 500
 
 @tts_bp.route('/synthesize_file', methods=['POST'])
 def synthesize_from_file():

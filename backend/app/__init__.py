@@ -1,10 +1,13 @@
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_socketio import SocketIO
 from app import config
+import logging
+from logging.handlers import RotatingFileHandler
+import os
 
 # 实例化扩展
 db = SQLAlchemy()
@@ -13,49 +16,24 @@ jwt = JWTManager()
 socketio = SocketIO()
 
 def create_app(config_name='default'):
-    app = Flask(__name__, static_folder='../frontend/dist', static_url_path='')
+    app = Flask(__name__)
     app.config.from_object(config.config[config_name])
 
-    # 配置CORS
-    CORS(app, 
-        resources={
-            r"/*": {  # 允许所有路由
-                "origins": [
-                    "http://localhost:5173",  # Vite 开发服务器
-                    "http://localhost:3000",  # 其他可能的前端开发服务器
-                    "http://127.0.0.1:5173",  # 使用 IP 地址访问
-                    "http://localhost:8080"   # Vue CLI 开发服务器
-                ],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
-                "expose_headers": ["Content-Length", "Content-Range"],
-                "supports_credentials": True,
-                "max_age": 86400  # 预检请求的缓存时间（24小时）
-            }
-        }
-    )
+    # 配置日志
+    if not os.path.exists('logs'):
+        os.mkdir('logs')
+    file_handler = RotatingFileHandler('logs/vimi.log', maxBytes=10240, backupCount=10)
+    file_handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+    ))
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+    app.logger.info('Vimi startup')
 
-    # 添加CORS预检请求处理
-    @app.after_request
-    def after_request(response):
-        origin = request.headers.get('Origin')
-        if origin and origin in [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "http://127.0.0.1:5173",
-            "http://localhost:8080"
-        ]:
-            # 即使是错误响应也添加CORS头部
-            response.headers.add('Access-Control-Allow-Origin', origin)
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept')
-            response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Max-Age', '86400')
-            
-            # 确保错误响应也返回正确的Content-Type
-            if response.status_code >= 400:
-                response.headers['Content-Type'] = 'application/json'
-        return response
+    # 配置CORS
+    app.config['CORS_HEADERS'] = 'Content-Type'
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     # 初始化扩展
     db.init_app(app)
@@ -71,13 +49,18 @@ def create_app(config_name='default'):
         from .routes.tts import tts_bp
         from .routes.asr import asr_bp
         from .routes.ai.spark import spark_bp
+        from .routes.auth import auth_bp
         
         app.register_blueprint(asr_bp, url_prefix='/api/asr')
         app.register_blueprint(vision_bp, url_prefix='/api/vision')
         app.register_blueprint(user_bp, url_prefix='/api/user')
         app.register_blueprint(tts_bp, url_prefix='/api/tts')
         app.register_blueprint(spark_bp, url_prefix='/api/spark')
+        app.register_blueprint(auth_bp, url_prefix='/api/auth')
         app.register_blueprint(main_bp)
+    
+        # 创建数据库表
+        db.create_all()
     
     # 错误处理
     @app.errorhandler(404)
@@ -89,9 +72,10 @@ def create_app(config_name='default'):
 
     @app.errorhandler(500)
     def internal_error(error):
+        app.logger.error(f'Server Error: {error}')
         return jsonify({
             'error': 'Internal server error',
             'message': str(error)
         }), 500
 
-    return app 
+    return app

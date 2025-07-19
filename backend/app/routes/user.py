@@ -1,15 +1,14 @@
 from flask import Blueprint, request, jsonify
 import base64
 import os
-import io
 from PIL import Image
 from io import BytesIO
 from ..services.ai.vision.face_recognition import FaceRecognitionService
-from ..config import Config
-
+from app.models.user import User
 user_bp = Blueprint('user', __name__)
 face_service = FaceRecognitionService()
-
+from app.models.job import Job
+from app.models.jobApplication import JobApplication
 # 存储用户照片的目录
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
@@ -124,4 +123,38 @@ def verify_face():
         return jsonify({
             'success': False,
             'error': f'服务器错误: {str(e)}'
-        }), 500 
+        }), 500
+
+###获取应聘者信息
+@user_bp.route('/job_info', methods=['GET'])
+def get_user_job_info():
+    user_id = request.args.get('user_id', type=int)
+    job_id = request.args.get('job_id', type=int)
+
+    if not user_id or not job_id:
+        return jsonify({'msg': '缺少 user_id 或 job_id 参数'}), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'msg': '未找到指定用户'}), 404
+
+    job = Job.query.get(job_id)
+    if not job:
+        return jsonify({'msg': '未找到指定职位'}), 404
+
+    # 这里应该查询该用户对该职位的申请记录，而不是只按user_id查询
+    job_application = JobApplication.query.filter_by(
+        user_id=user_id,
+        job_id=job_id
+    ).first()
+
+    if not job_application:
+        return jsonify({'msg': '该用户没有申请该职位'}), 404
+
+    return jsonify({
+        'username': user.username,
+        'job_title': job.job_title,
+        'job_category': job.job_category,
+        'photo_path': job_application.photo_path
+
+    })

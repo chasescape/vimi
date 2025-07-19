@@ -1,5 +1,6 @@
 from flask import Blueprint
 from .tts import tts_bp
+from .job import job_bp
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
