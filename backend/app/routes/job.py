@@ -16,6 +16,9 @@ from app.ise_eval import ise_eval
 from app.models.voice_record import VoiceRecord
 import time
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ✅ 查询所有岗位
 @job_bp.route('/list', methods=['GET'])
@@ -211,7 +214,7 @@ def set_interview_info():
 @jobApplication_bp.route('/applied', methods=['GET'])
 def get_approved_applied_jobs():
     fixed_user_id = 1  # 还未做登录，临时使用固定 user_id=1
-    # 仅返回状态为“通过”的申请
+    # 仅返回状态为"通过"的申请
     approved_apps = JobApplication.query.filter_by(user_id=fixed_user_id, status='已通过').all()
     result = []
     for app in approved_apps:
@@ -233,12 +236,15 @@ def get_approved_applied_jobs():
 
 # 阿里云 OSS 配置
 # 简历上传接口
-OSS_ENDPOINT = 'oss-cn-guangzhou.aliyuncs.com'
-OSS_BUCKET_NAME = 'vimi-save'
-OSS_ACCESS_KEY_ID = 'LTAI5tMYdh1oB63TbHanBcEk'
-OSS_ACCESS_KEY_SECRET = 'qgniObrISa8W9IQv4vuaOQWJHWxyxh'
+OSS_ENDPOINT = os.getenv('OSS_ENDPOINT', 'oss-cn-guangzhou.aliyuncs.com')
+OSS_BUCKET_NAME = os.getenv('OSS_BUCKET_NAME', 'vimi-save')
+OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')
+OSS_ACCESS_KEY_SECRET = os.getenv('OSS_ACCESS_KEY_SECRET')
+
+# 初始化OSS客户端
 auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
 bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET_NAME)
+
 @jobApplication_bp.route('/upload_resume', methods=['POST'])
 def upload_resume():
     file = request.files.get('resume')
