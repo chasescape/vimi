@@ -10,7 +10,8 @@ python-dotenv==0.21.1
 
 # 数据库
 sqlalchemy==2.0.41
-psycopg2-binary==2.9.9
+pymysql==1.1.0
+cryptography==41.0.7
 redis==5.0.1
 
 # AI相关

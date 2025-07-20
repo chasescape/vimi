@@ -1,103 +1,63 @@
-import axios from 'axios';
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
+import router from '@/router'
 
-// 创建 axios 实例
-const instance = axios.create({
-    baseURL: 'http://localhost:5000', // 后端服务地址
-    timeout: 15000, // 请求超时时间
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-    },
-    // 允许跨域携带cookie
-    withCredentials: true
-});
-
-// 从localStorage获取token
-const getToken = () => {
-    return localStorage.getItem('token');
-};
+// 创建axios实例
+const request = axios.create({
+    baseURL: 'http://localhost:5000',
+    timeout: 15000
+})
 
 // 请求拦截器
-instance.interceptors.request.use(
-    (config) => {
-        // 添加认证token
-        const token = getToken();
+request.interceptors.request.use(
+    config => {
+        // 从localStorage获取token
+        const token = localStorage.getItem('token')
         if (token) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`
         }
-
-        // 添加调试信息
-        console.log('发送请求:', {
-            url: config.url,
-            method: config.method,
-            headers: config.headers,
-            data: config.data
-        });
-        return config;
+        return config
     },
-    (error) => {
-        console.error('请求配置错误:', error);
-        return Promise.reject(error);
+    error => {
+        console.error('请求错误:', error)
+        return Promise.reject(error)
     }
-);
+)
 
 // 响应拦截器
-instance.interceptors.response.use(
-    (response) => {
-        // 添加调试信息
-        console.log('收到响应:', {
-            status: response.status,
-            data: response.data,
-            headers: response.headers
-        });
-        return response;
+request.interceptors.response.use(
+    response => {
+        return response
     },
-    (error) => {
+    error => {
         if (error.response) {
-            // 服务器返回错误状态码
-            console.error('服务器响应错误:', {
-                status: error.response.status,
-                data: error.response.data,
-                headers: error.response.headers
-            });
-
-            // 处理401未授权错误
-            if (error.response.status === 401) {
-                console.error('未授权访问，请检查认证状态');
-                // 可以在这里处理token过期等情况
-                // 例如：重定向到登录页面
-                // window.location.href = '/login';
-            } else {
                 switch (error.response.status) {
+                case 401:
+                    // token过期或无效
+                    localStorage.removeItem('token')
+                    localStorage.removeItem('user')
+                    router.push('/auth/login')
+                    ElMessage.error('登录已过期，请重新登录')
+                    break
+                case 403:
+                    ElMessage.error('没有权限访问')
+                    break
                     case 404:
-                        console.error('请求的资源不存在');
-                        break;
+                    ElMessage.error('请求的资源不存在')
+                    break
                     case 500:
-                        console.error('服务器错误');
-                        break;
+                    ElMessage.error('服务器错误，请稍后重试')
+                    break
                     default:
-                        console.error('网络请求失败:', error.response.data?.error || '未知错误');
-                }
+                    ElMessage.error(error.response.data?.message || '请求失败')
             }
-        } else if (error.request) {
-            // 请求发出但没有收到响应
-            console.error('无法连接到服务器，请检查:', {
-                baseURL: instance.defaults.baseURL,
-                timeout: instance.defaults.timeout,
-                error: error.message
-            });
+        } else if (error.code === 'ERR_NETWORK') {
+            ElMessage.error('网络错误，请检查后端服务是否启动')
         } else {
-            // 请求配置出错
-            console.error('请求配置错误:', error.message);
+            ElMessage.error('网络错误，请检查网络连接')
         }
-        return Promise.reject(error);
+        return Promise.reject(error)
     }
-);
+)
 
-// 测试连接
-instance.get('/api/test')
-    .then(() => console.log('后端服务连接正常'))
-    .catch(error => console.error('后端服务连接失败:', error));
-
-export default instance; 
+export default request 

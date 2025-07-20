@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
-from app.models.user import SpeechRecord
+from app.models.speech import SpeechRecord
 from app import db
 from ..services.ai.asr.speech_recognition import SpeechRecognition
 
@@ -67,77 +67,63 @@ def upload_audio():
 
 @asr_bp.route('/recognize', methods=['POST'])
 def recognize_speech():
-    """语音识别API"""
+    """语音识别接口"""
     try:
-        print("=== 语音识别API被调用 ===")
-        data = request.get_json()
-        print(f"接收到的数据: {data}")
+        # 检查是否有文件上传
+        if 'audio' not in request.files:
+            return jsonify({
+                'success': False,
+                'message': '没有上传音频文件'
+            }), 400
+            
+        audio_file = request.files['audio']
+        user_id = request.form.get('user_id')
         
-        audio_file_path = data.get('audio_file_path')
-        user_id = data.get('user_id')
-        is_realtime = data.get('is_realtime', False)
+        # 检查文件名
+        if audio_file.filename == '':
+            return jsonify({
+                'success': False,
+                'message': '没有选择文件'
+            }), 400
         
-        print(f"音频文件路径: {audio_file_path}")
-        print(f"用户ID: {user_id}")
-        print(f"是否实时录音: {is_realtime}")
+        # 保存音频文件
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f"audio_{timestamp}.wav"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        audio_file.save(filepath)
         
-        if not audio_file_path:
-            print("错误: 音频文件路径是必需的")
-            return jsonify({'error': '音频文件路径是必需的'}), 400
-        
-        # 检查文件是否存在
-        print(f"检查文件是否存在: {audio_file_path}")
-        if not os.path.exists(audio_file_path):
-            print(f"文件不存在，尝试在uploads目录中查找")
-            # 尝试在uploads目录中查找
-            uploads_path = os.path.join(UPLOAD_FOLDER, os.path.basename(audio_file_path))
-            print(f"uploads路径: {uploads_path}")
-            if os.path.exists(uploads_path):
-                audio_file_path = uploads_path
-                print(f"在uploads目录中找到文件: {audio_file_path}")
-            else:
-                print(f"文件在uploads目录中也不存在")
-                return jsonify({'error': f'音频文件不存在: {audio_file_path}'}), 404
-        
-        print(f"开始语音识别: {audio_file_path}")
+        # 初始化语音识别服务
+        asr_service = SpeechRecognition()
         
         # 执行语音识别
-        result = speech_recognizer.recognize_audio_file(audio_file_path)
-        
-        print(f"识别结果: {result}")
+        result = asr_service.recognize(filepath)
         
         if result['success']:
-            # 保存识别记录到数据库
-            speech_record = SpeechRecord(
-                audio_file=audio_file_path,
+            # 保存记录到数据库
+            record = SpeechRecord(
+                audio_file=filepath,
                 recognized_text=result['text'],
                 user_id=user_id
             )
-            db.session.add(speech_record)
+            db.session.add(record)
             db.session.commit()
             
-            print("识别成功，记录已保存")
             return jsonify({
                 'success': True,
                 'text': result['text'],
-                'record_id': speech_record.id,
-                'is_realtime': is_realtime
+                'record_id': record.id
             })
         else:
-            # 增强错误提示
-            error_msg = result['error'] or '识别结果为空，可能音频内容无效或格式不兼容。请上传16kHz/16bit/单声道wav音频。'
-            print(f"识别失败: {error_msg}")
             return jsonify({
                 'success': False,
-                'error': error_msg,
-                'is_realtime': is_realtime
-            }), 400
+                'message': result['error']
+            }), 500
             
     except Exception as e:
-        print(f"语音识别异常: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'语音识别失败: {str(e)}'}), 500
+        return jsonify({
+            'success': False,
+            'message': f'语音识别失败: {str(e)}'
+        }), 500
 
 @asr_bp.route('/records', methods=['GET'])
 def get_speech_records():
