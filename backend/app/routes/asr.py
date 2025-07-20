@@ -85,7 +85,7 @@ def recognize_speech():
                 'success': False,
                 'message': '没有选择文件'
             }), 400
-            
+        
         # 保存音频文件
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"audio_{timestamp}.wav"

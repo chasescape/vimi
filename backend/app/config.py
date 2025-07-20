@@ -2,14 +2,21 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
+# 加载环境变量
 load_dotenv()
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key')
+    # 数据库配置
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///dev.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
-    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+    
+    # 阿里云配置
+    ALIYUN_ACCESS_KEY_ID = os.getenv('ALIYUN_ACCESS_KEY_ID')
+    ALIYUN_ACCESS_KEY_SECRET = os.getenv('ALIYUN_ACCESS_KEY_SECRET')
+    
+    # 其他配置
+    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'uploads')
     
     # 讯飞API配置
     XUNFEI_APPID = 'af632c9a'

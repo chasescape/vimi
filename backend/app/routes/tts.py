@@ -115,7 +115,7 @@ def synthesize_speech():
             as_attachment=True,
             download_name='synthesized_speech.mp3'
         )
-        
+            
     except Exception as e:
         return jsonify({
             'success': False,

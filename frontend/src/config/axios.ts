@@ -31,7 +31,7 @@ request.interceptors.response.use(
     },
     error => {
         if (error.response) {
-            switch (error.response.status) {
+                switch (error.response.status) {
                 case 401:
                     // token过期或无效
                     localStorage.removeItem('token')
@@ -42,13 +42,13 @@ request.interceptors.response.use(
                 case 403:
                     ElMessage.error('没有权限访问')
                     break
-                case 404:
+                    case 404:
                     ElMessage.error('请求的资源不存在')
                     break
-                case 500:
+                    case 500:
                     ElMessage.error('服务器错误，请稍后重试')
                     break
-                default:
+                    default:
                     ElMessage.error(error.response.data?.message || '请求失败')
             }
         } else if (error.code === 'ERR_NETWORK') {

@@ -61,8 +61,8 @@ def create_app(config_name='default'):
     
         # 创建数据库表
         db.create_all()
-    
-    # 错误处理
+
+        # 错误处理
     @app.errorhandler(404)
     def not_found(error):
         return jsonify({

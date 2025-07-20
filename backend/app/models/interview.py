@@ -4,7 +4,7 @@ from app import db
 class Interview(db.Model):
     """面试模型"""
     __tablename__ = 'interviews'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
