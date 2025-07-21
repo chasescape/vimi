@@ -17,8 +17,13 @@
 
     <div class="flex">
       <!-- 侧边栏 -->
+<<<<<<< HEAD
       <nav class="w-64 bg-white shadow-lg h-screen fixed" >
         <div class="p-4" >
+=======
+      <nav class="w-64 bg-white shadow-lg h-screen fixed">
+        <div class="p-4">
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
           <DashboardSidebar 
             :items="sidebarItems"
             :activeRoute="$route.path"
@@ -55,7 +60,10 @@ const sidebarItems = ref([
   {
     title: '面试选项',
     icon: Guide,
+<<<<<<< HEAD
     route: '',
+=======
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
     children: [
         {
         title: '搜索面试',
@@ -87,11 +95,14 @@ const sidebarItems = ref([
         icon: Reading,
         route: '/candidate/interview-history'
       },
+<<<<<<< HEAD
       {
         title: '面试分析',
         icon: Reading,
         route: '/candidate/interview-result'
       },
+=======
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
     ]
   },
   {

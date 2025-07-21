@@ -18,16 +18,32 @@ const router = createRouter({
             name: 'AIInterview',
             component: () => import('../views/AIInterview.vue')
         },
+<<<<<<< HEAD
+=======
+        {
+            path: '/interview-result',
+            name: 'interview-result',
+            component: () => import('../views/InterviewResult.vue')
+        },
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
         // auth 文件夹路由
         {
             path: '/auth/register',
             name: 'register',
+<<<<<<< HEAD
             component: () => import('../views/auth/Register.vue')
+=======
+            component: () => import('../views/auth/register.vue')
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
         },
         {
             path: '/auth/login',
             name: 'login',
+<<<<<<< HEAD
             component: () => import('../views/auth/Login.vue')
+=======
+            component: () => import('../views/auth/login.vue')
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
         },
         // candidate 文件夹路由
         {
@@ -75,11 +91,14 @@ const router = createRouter({
                     name: 'candidate-interview-performance',
                     component: () => import('../views/candidate/InterviewPerformance.vue')
                 },
+<<<<<<< HEAD
                 {
                     path: '/candidate/interview-result',
                     name: 'candidate-interview-result',
                     component: () => import('../views/candidate/InterviewResult.vue')
                 },
+=======
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
             ]
         },
 

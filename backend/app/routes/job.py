@@ -240,6 +240,10 @@ OSS_ENDPOINT = os.getenv('OSS_ENDPOINT', 'oss-cn-guangzhou.aliyuncs.com')
 OSS_BUCKET_NAME = os.getenv('OSS_BUCKET_NAME', 'vimi-save')
 OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')
 OSS_ACCESS_KEY_SECRET = os.getenv('OSS_ACCESS_KEY_SECRET')
+<<<<<<< HEAD
+=======
+
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
 # 初始化OSS客户端
 auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
 bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET_NAME)

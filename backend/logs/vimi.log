@@ -11,6 +11,7 @@
 2025-07-20 07:38:04,189 INFO: 收到注册请求数据: {'username': 'CHASEE', 'email': '3328162745@qq.com', 'password': '123456', 'role': 'candidate'} [in D:\A2\vimi\backend\app\routes\auth.py:16]
 2025-07-20 07:38:04,303 INFO: 创建新用户: CHASEE [in D:\A2\vimi\backend\app\routes\auth.py:52]
 2025-07-20 07:38:04,314 INFO: 用户保存成功: 1 [in D:\A2\vimi\backend\app\routes\auth.py:57]
+<<<<<<< HEAD
 2025-07-20 18:10:53,963 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
 2025-07-20 18:11:55,521 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
 2025-07-20 18:34:25,873 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
@@ -31,3 +32,5 @@
 2025-07-21 13:13:29,124 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
 2025-07-21 19:59:09,261 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
 2025-07-21 19:59:10,877 INFO: Vimi startup [in F:\Code\challenge\project\wyl\1\vimi-main\backend\app\__init__.py:32]
+=======
+>>>>>>> b431cc21e01319794c7207735603f8ae8ccefa65
