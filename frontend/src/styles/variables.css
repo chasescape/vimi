@@ -1,0 +1,51 @@
+/* Base Variables */
+:root {
+    /* Colors */
+    --primary-color: #4CAF50;
+    --error-color: #f44336;
+    --text-color: #333;
+    --bg-color: #fff;
+    --border-color: rgba(0, 0, 0, 0.1);
+
+    /* Shadows */
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    /* Transitions */
+    --transition-duration: 0.3s;
+
+    /* Z-indexes */
+    --modal-z-index: 1000;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Border radius */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+
+    /* Typography */
+    --font-size-sm: 12px;
+    --font-size-base: 14px;
+    --font-size-lg: 16px;
+    --font-size-xl: 20px;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 600;
+    --line-height-tight: 1.2;
+    --line-height-base: 1.5;
+    --line-height-loose: 1.8;
+}
+
+/* Dark theme */
+:root[data-theme="dark"] {
+    --primary-color: #66bb6a;
+    --error-color: #ef5350;
+    --text-color: #fff;
+    --bg-color: #121212;
+    --border-color: rgba(255, 255, 255, 0.1);
+}
