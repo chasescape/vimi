@@ -11,8 +11,8 @@
           <el-button type="primary" @click="$router.push('/interviewer/create')">
             <el-icon><Plus /></el-icon>创建面试
           </el-button>
-        </div>
       </div>
+    </div>
 
       <!-- 列表视图 -->
       <template v-if="viewType === 'list'">
@@ -31,7 +31,7 @@
                       {{ row.candidate.charAt(0) }}
                     </el-avatar>
                     {{ row.candidate }}
-                  </div>
+        </div>
                 </template>
               </el-table-column>
               <el-table-column prop="position" label="面试职位" />
@@ -90,7 +90,7 @@
                       {{ row.candidate.charAt(0) }}
                     </el-avatar>
                     {{ row.candidate }}
-                  </div>
+          </div>
                 </template>
               </el-table-column>
               <el-table-column prop="position" label="面试职位" />
@@ -145,7 +145,7 @@
                 <el-tag size="small" type="success">
                   {{ getInterviewCount(data.day) }}场面试
                 </el-tag>
-              </div>
+          </div>
             </div>
           </template>
         </el-calendar>

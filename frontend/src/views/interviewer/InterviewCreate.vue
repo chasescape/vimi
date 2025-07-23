@@ -96,7 +96,7 @@
               <div class="flex items-center">
                 <span>{{ candidate.name }}</span>
                 <span class="text-gray-500 ml-2">({{ candidate.experience }}年经验)</span>
-              </div>
+                  </div>
             </el-option>
           </el-select>
         </el-form-item>

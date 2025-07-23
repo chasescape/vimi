@@ -60,9 +60,9 @@
                   class="text-blue-600 hover:text-blue-800"
                   @click="showForgotPassword = true"
                 >
-                  忘记密码？
+            忘记密码？
                 </el-button>
-              </div>
+                  </div>
 
               <el-form-item class="mt-10">
                 <el-button 
@@ -126,7 +126,7 @@
                 >
                   忘记密码？
                 </el-button>
-              </div>
+                  </div>
 
               <el-form-item class="mt-10">
                 <el-button 
@@ -191,7 +191,7 @@
           <el-button type="primary" @click="handleForgotPassword" :loading="forgotLoading">
             确认
           </el-button>
-        </div>
+    </div>
       </template>
     </el-dialog>
 
@@ -273,7 +273,7 @@ const forgotRules = {
 
 const handleLogin = async () => {
   if (!loginFormRef.value) return
-
+  
   try {
     await loginFormRef.value.validate()
     
@@ -290,13 +290,13 @@ const handleLogin = async () => {
     })
 
     if (response.data.success) {
-      // 保存登录信息
+    // 保存登录信息
       localStorage.setItem('token', response.data.access_token)
       localStorage.setItem('user', JSON.stringify(response.data.user))
       
       ElMessage.success('登录成功')
       if (response.data.user.role === 'candidate') {
-        router.push('/candidate/home')
+    router.push('/candidate/home')
       } else {
         router.push('/interviewer/home')
       }

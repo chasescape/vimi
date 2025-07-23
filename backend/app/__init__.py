@@ -13,7 +13,7 @@ jwt = JWTManager()
 def create_app(config_name='development'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
-    
+
     # 初始化扩展
     db.init_app(app)
     migrate.init_app(app, db)
@@ -21,7 +21,7 @@ def create_app(config_name='development'):
     
     # 启用CORS，允许所有源
     CORS(app, supports_credentials=True)
-    
+
     # 注册蓝图
     from .routes.auth import auth_bp
     from .routes.resume import resume_bp
@@ -34,5 +34,5 @@ def create_app(config_name='development'):
     app.register_blueprint(job_bp, url_prefix='/api/job')
     app.register_blueprint(interview_bp, url_prefix='/api/interview')
     app.register_blueprint(user_bp, url_prefix='/api/user')
-    
+
     return app

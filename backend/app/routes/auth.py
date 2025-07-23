@@ -100,7 +100,7 @@ def register():
                 return jsonify({
                     'success': False,
                     'message': '邀请码无效'
-                }), 400
+            }), 400
 
         # 创建新用户
         user = User(
@@ -147,8 +147,8 @@ def get_profile():
                 'message': '用户不存在'
             }), 404
 
-        return jsonify({
-            'success': True,
+            return jsonify({
+                'success': True,
             'user': user.to_dict()
         })
             

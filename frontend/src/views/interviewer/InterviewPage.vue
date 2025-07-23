@@ -84,8 +84,8 @@
             <div class="font-medium">{{ edu.school }}</div>
             <div class="text-gray-500">
               {{ edu.major }} | {{ edu.degree }} | {{ edu.time }}
-            </div>
-          </div>
+    </div>
+      </div>
         </el-descriptions-item>
         <el-descriptions-item label="工作经历" :span="2">
           <div v-for="work in candidate.workExperience" :key="work.company" class="mb-2">
@@ -106,7 +106,7 @@
         <el-button type="primary" @click="handleSaveEvaluation" v-if="!interview.evaluation">
           提交评估
         </el-button>
-      </div>
+        </div>
 
       <template v-if="interview.evaluation">
         <el-descriptions :column="2" border>
@@ -276,7 +276,7 @@ const candidate = ref({
       description: '参与公司电商项目的开发，负责页面开发和性能优化。'
     }
   ]
-})
+        })
 
 // 评估表单
 const evaluationForm = ref({

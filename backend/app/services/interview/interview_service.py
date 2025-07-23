@@ -245,7 +245,7 @@ class InterviewService:
             'answer': answer,
             'time': datetime.now()
         })
-        
+
         # 生成评估结果（这里是模拟的评估逻辑，实际应该调用AI模型）
         evaluation = {
             'overall_score': 85,
