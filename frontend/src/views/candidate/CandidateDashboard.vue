@@ -1,101 +1,155 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- 头部栏 -->
-    <header class="bg-gradient-to-r from-blue-500 to-blue-700 shadow-lg rounded-b-2xl mx-4">
-      <div class="container mx-auto px-6 py-4 flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-white">Vimi-应聘者</h1>
-        <div class="flex items-center space-x-4">
-          <span class="text-white">{{ username }}</span>
-          <router-link to="/profile">
-            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span class="text-blue-600 font-medium">U</span>
-            </div>
-          </router-link>
+    <!-- 侧边栏 -->
+    <div class="fixed left-0 top-0 w-64 h-full bg-white shadow-lg z-10">
+      <div class="p-6">
+        <h1 class="text-2xl font-bold text-gray-800">VIMI</h1>
+      </div>
+      <nav class="mt-4">
+        <router-link
+          v-for="item in sidebarItems"
+          :key="item.route"
+          :to="item.route"
+          class="flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100 transition-colors"
+          :class="{ 'bg-gray-100 text-blue-600': isRouteActive(item.route) }"
+        >
+          <el-icon class="mr-3" :size="18">
+            <component :is="item.icon" />
+          </el-icon>
+          <span>{{ item.title }}</span>
+        </router-link>
+      </nav>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="ml-64 min-h-screen">
+      <!-- 顶部栏 -->
+      <div class="bg-white shadow-sm">
+        <div class="container mx-auto px-6 py-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-gray-800">{{ currentPageTitle }}</h2>
+            <el-dropdown trigger="click">
+              <div class="flex items-center cursor-pointer">
+                <el-avatar :size="32" class="mr-2">
+                  {{ userInitials }}
+                </el-avatar>
+                <span class="text-gray-700">{{ username }}</span>
+                <el-icon class="ml-1"><ArrowDown /></el-icon>
+              </div>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="goToProfile">
+                    <el-icon><User /></el-icon>个人中心
+                  </el-dropdown-item>
+                  <el-dropdown-item divided @click="handleLogout">
+                    <el-icon><SwitchButton /></el-icon>退出登录
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </div>
       </div>
-    </header>
 
-    <div class="flex">
-      <!-- 侧边栏 -->
-      <nav class="w-64 bg-white shadow-lg h-screen fixed">
-        <div class="p-4">
-          <DashboardSidebar 
-            :items="sidebarItems"
-            :activeRoute="$route.path"
-            is-root
-            @navigate="handleNavigation"
-          />
-        </div>
-      </nav>
-
-      <!-- 主要内容 -->
-      <main class="ml-64 p-8 flex-1">
-        <router-view></router-view>
-      </main>
+      <!-- 页面内容 -->
+      <div class="container mx-auto p-6">
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
-import {Guide, House, Calendar, User as UserIcon, Document, Search, View, VideoCamera, Histogram, Reading } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
+import {
+  House,
+  Document,
+  Search,
+  Calendar,
+  Timer,
+  VideoCamera,
+  User,
+  ArrowDown,
+  SwitchButton
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
-const username = ref('候选人_张伟')
+const route = useRoute()
 
-const sidebarItems = ref([
-  {
-    title: '主页',
-    icon: House,
-    route: '/candidate/home',
-    children: []
-  },
-  {
-    title: '面试选项',
-    icon: Guide,
-    children: [
-        {
-        title: '搜索面试',
-        icon: Search,
-        route: '/candidate/interview-search'
-      },
-      {
-        title: '面试安排',
-        icon: Calendar,
-        route: '/candidate/interview-schedule'
-      },
-      {
-        title: '开始面试',
-        icon: View,
-        route: '/candidate/interview-page'
-      },
-      {
-        title: '模拟面试',
-        icon: VideoCamera,
-        route: '/candidate/interview-test'
-      },
-      {
-        title: '面试表现',
-        icon: Histogram,
-        route: '/candidate/interview-performance'
-      },
-      {
-        title: '面试历史',
-        icon: Reading,
-        route: '/candidate/interview-history'
-      },
-    ]
-  },
-  {
-    title: '个人中心',
-    icon: UserIcon,
-    route: '/candidate/profile'
+// 用户信息
+const username = ref(localStorage.getItem('username') || '用户')
+const userInitials = computed(() => {
+  return username.value.charAt(0).toUpperCase()
+})
+
+// 侧边栏菜单项
+const sidebarItems = [
+  { title: '主页', route: '/candidate/home', icon: House },
+  { title: '简历管理', route: '/candidate/resume', icon: Document },
+  { title: '职位搜索', route: '/candidate/search', icon: Search },
+  { title: '面试日程', route: '/candidate/schedule', icon: Calendar },
+  { title: '面试历史', route: '/candidate/history', icon: Timer },
+  { title: '模拟面试', route: '/candidate/test', icon: VideoCamera }
+]
+
+// 检查路由是否激活
+const isRouteActive = (path: string) => {
+  return route.path === path
+}
+
+// 当前页面标题
+const currentPageTitle = computed(() => {
+  const currentItem = sidebarItems.find(item => item.route === route.path)
+  return currentItem ? currentItem.title : ''
+})
+
+// 跳转到个人中心
+const goToProfile = () => {
+  router.push('/candidate/profile')
+}
+
+// 处理退出登录
+const handleLogout = async () => {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    // 清除登录信息
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    localStorage.removeItem('role')
+    
+    // 跳转到登录页
+    router.push('/login')
+  } catch {
+    // 用户取消操作
   }
-])
-
-const handleNavigation = (route: string) => {
-  router.push(route)
 }
 </script>
+
+<style scoped>
+.router-link-active {
+  @apply bg-gray-100 text-blue-600;
+}
+
+.el-dropdown-menu {
+  @apply min-w-[120px];
+}
+
+.el-dropdown-menu__item {
+  @apply flex items-center;
+}
+
+.el-dropdown-menu__item .el-icon {
+  @apply mr-2;
+}
+</style>

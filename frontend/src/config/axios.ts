@@ -5,15 +5,23 @@ import router from '@/router'
 // 创建axios实例
 const request = axios.create({
     baseURL: 'http://localhost:5000',
-    timeout: 15000
+    timeout: 15000,
+    withCredentials: true,  // 允许跨域携带cookie
+    headers: {
+        'Content-Type': 'application/json'
+    }
 })
 
 // 请求拦截器
 request.interceptors.request.use(
     config => {
+        // 确保headers对象存在
+        config.headers = config.headers || {}
+
         // 从localStorage获取token
         const token = localStorage.getItem('token')
         if (token) {
+            // 添加token到Authorization头
             config.headers.Authorization = `Bearer ${token}`
         }
         return config
@@ -31,24 +39,27 @@ request.interceptors.response.use(
     },
     error => {
         if (error.response) {
-                switch (error.response.status) {
+            switch (error.response.status) {
                 case 401:
                     // token过期或无效
                     localStorage.removeItem('token')
                     localStorage.removeItem('user')
-                    router.push('/auth/login')
                     ElMessage.error('登录已过期，请重新登录')
+                    // 如果不是登录页面，才跳转
+                    if (router.currentRoute.value.path !== '/login') {
+                        router.push('/login')
+                    }
                     break
                 case 403:
                     ElMessage.error('没有权限访问')
                     break
-                    case 404:
+                case 404:
                     ElMessage.error('请求的资源不存在')
                     break
-                    case 500:
+                case 500:
                     ElMessage.error('服务器错误，请稍后重试')
                     break
-                    default:
+                default:
                     ElMessage.error(error.response.data?.message || '请求失败')
             }
         } else if (error.code === 'ERR_NETWORK') {

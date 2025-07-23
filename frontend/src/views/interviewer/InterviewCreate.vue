@@ -1,1074 +1,383 @@
 <template>
-  <div class="modern-hr-dashboard">
-    <!-- 新增：简历预览模态框 -->
-    <div v-if="showResumeModal" class="resume-modal-overlay" @click.self="closeResumeModal">
-      <div class="resume-modal">
-        <div class="modal-header">
-          <h3>{{ currentResume.candidateName }}的简历</h3>
-          <button @click="closeResumeModal" class="modal-close-btn">
-            <i class="icon-close"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <iframe 
-            v-if="currentResume.url" 
-            :src="getPreviewUrl(currentResume.url)" 
-            frameborder="0"
-            class="resume-iframe"
-          ></iframe>
-          <div v-else class="no-resume">
-            无法加载简历
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="downloadResume(currentResume.url)" class="download-btn">
-            <i class="icon-download"></i> 下载简历
-          </button>
-        </div>
+  <div class="interview-create p-6">
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold mb-6">岗位信息总览</h2>
+      
+      <!-- 搜索和筛选 -->
+      <div class="flex items-center gap-4 mb-6">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索岗位/类别"
+          class="w-64"
+          clearable
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+
+        <el-select v-model="cityFilter" placeholder="全部城市" clearable>
+          <el-option label="北京" value="北京" />
+          <el-option label="上海" value="上海" />
+          <el-option label="深圳" value="深圳" />
+          <el-option label="广州" value="广州" />
+          <el-option label="杭州" value="杭州" />
+        </el-select>
+
+        <el-select v-model="salaryFilter" placeholder="薪资范围" clearable>
+          <el-option label="10k-15k" value="10k-15k" />
+          <el-option label="15k-20k" value="15k-20k" />
+          <el-option label="20k-30k" value="20k-30k" />
+          <el-option label="30k以上" value="30k+" />
+        </el-select>
+
+        <el-button type="primary" @click="handleSearch">
+          <el-icon><Search /></el-icon>筛选
+        </el-button>
+
+        <el-button type="success" @click="handleCreatePosition">
+          <el-icon><Plus /></el-icon>新增岗位
+        </el-button>
       </div>
+
+      <!-- 岗位列表 -->
+      <el-table :data="filteredPositions" v-loading="loading">
+        <el-table-column prop="title" label="岗位名称" min-width="200">
+          <template #default="{ row }">
+            <div class="font-medium text-blue-600">{{ row.title }}</div>
+            <div class="text-gray-500 text-sm">{{ row.department }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="city" label="工作地点" width="100" />
+        <el-table-column prop="salary" label="薪资范围" width="120" />
+        <el-table-column prop="candidates" label="候选人" width="100">
+          <template #default="{ row }">
+            {{ row.candidates }}人
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link @click="handleCreateInterview(row)">
+              创建面试
+            </el-button>
+            <el-button type="primary" link @click="handleViewDetail(row)">
+              查看详情
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
-    <!-- 顶部导航 -->
-    <div class="dashboard-header">
-      <div class="header-content">
-        <h1 class="dashboard-title">
-          <span class="title-highlight">HR</span> 人才管理中心
-        </h1>
-        <div class="header-actions">
-          <button class="action-btn refresh-btn" @click="fetchApplications">
-            <i class="icon-refresh"></i> 刷新数据
-          </button>
-          <div class="search-container">
-            <i class="icon-search"></i>
-            <input type="text" placeholder="搜索候选人..." v-model="searchQuery">
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- 创建面试对话框 -->
+    <el-dialog
+      v-model="showCreateDialog"
+      title="创建面试"
+      width="600px"
+    >
+      <el-form :model="interviewForm" label-width="100px">
+        <el-form-item label="面试岗位">
+          <span>{{ selectedPosition?.title }}</span>
+        </el-form-item>
+        <el-form-item label="候选人">
+          <el-select v-model="interviewForm.candidate" placeholder="请选择候选人" class="w-full">
+            <el-option
+              v-for="candidate in candidates"
+              :key="candidate.id"
+              :label="candidate.name"
+              :value="candidate.id"
+            >
+              <div class="flex items-center">
+                <span>{{ candidate.name }}</span>
+                <span class="text-gray-500 ml-2">({{ candidate.experience }}年经验)</span>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="面试时间">
+          <el-date-picker
+            v-model="interviewForm.time"
+            type="datetime"
+            placeholder="选择面试时间"
+            class="w-full"
+          />
+        </el-form-item>
+        <el-form-item label="面试形式">
+          <el-radio-group v-model="interviewForm.type">
+            <el-radio label="online">线上面试</el-radio>
+            <el-radio label="offline">线下面试</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="面试地点" v-if="interviewForm.type === 'offline'">
+          <el-input v-model="interviewForm.location" placeholder="请输入面试地点" />
+        </el-form-item>
+        <el-form-item label="面试链接" v-else>
+          <el-input v-model="interviewForm.link" placeholder="请输入面试链接">
+            <template #append>
+              <el-button @click="generateMeetingLink">生成链接</el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input
+            v-model="interviewForm.notes"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入面试备注信息"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showCreateDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmitInterview">
+            创建面试
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
 
-    <!-- 数据概览卡片 -->
-    <div class="metrics-container">
-      <div class="metric-card total-applications">
-        <div class="metric-value">{{ applications.length }}</div>
-        <div class="metric-label">总申请数</div>
-        <div class="metric-icon">
-          <i class="icon-document"></i>
-        </div>
-      </div>
-      
-      <div class="metric-card pending-review">
-        <div class="metric-value">{{ pendingCount }}</div>
-        <div class="metric-label">待审核</div>
-        <div class="metric-icon">
-          <i class="icon-clock"></i>
-        </div>
-      </div>
-      
-      <div class="metric-card approved">
-        <div class="metric-value">{{ approvedCount }}</div>
-        <div class="metric-label">已通过</div>
-        <div class="metric-icon">
-          <i class="icon-check"></i>
-        </div>
-      </div>
-    </div>
-
-    <!-- 主内容区域 -->
-    <div class="main-content">
-      <div class="content-header">
-        <h2 class="section-title">候选人申请列表</h2>
-        <div class="section-actions">
-          <button class="export-btn">
-            <i class="icon-download"></i> 导出数据
-          </button>
-        </div>
-      </div>
-      
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">正在加载数据...</div>
-      </div>
-      
-      <!-- 申请表格 -->
-      <div v-else class="applications-table">
-        <div class="table-responsive">
-          <table class="applications-list">
-            <thead>
-              <tr>
-                <th class="col-id">申请ID</th>
-                <th class="col-candidate">候选人</th>
-                <th class="col-position">目标岗位</th>
-                <th class="col-status">状态</th>
-                <th class="col-resume">简历</th>
-                <th class="col-actions">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="app in filteredApplications" :key="app.application_id" class="application-row">
-                <td class="application-id">
-                  <span class="id-badge">#{{ app.application_id }}</span>
-                </td>
-                <td class="candidate-info">
-                  <div class="candidate-avatar">
-                    {{ app.username.charAt(0).toUpperCase() }}
-                  </div>
-                  <div class="candidate-details">
-                    <div class="candidate-name">{{ app.username }}</div>
-                    <div class="candidate-id">ID: {{ app.user_id || 'N/A' }}</div>
-                  </div>
-                </td>
-                <td class="position-info">
-                  <div class="position-title">{{ app.job_title }}</div>
-                  <div class="department">{{ app.department || '未指定部门' }}</div>
-                </td>
-                <td class="application-status">
-                  <div :class="['status-badge', getStatusClass(app.status)]">
-                    {{ app.status }}
-                  </div>
-                </td>
-                <td class="resume-link">
-                  <!-- 修改：将a标签改为button，点击触发预览 -->
-                  <button 
-                    v-if="app.resume_path" 
-                    @click="previewResume(app.resume_path, app.username)" 
-                    class="resume-btn"
-                  >
-                    <i class="icon-eye"></i> 查看简历
-                  </button>
-                  <span v-else class="no-resume">未上传</span>
-                </td>
-                <td class="application-actions">
-                  <div class="action-buttons">
-                    <button @click="approve(app.application_id)" class="action-btn approve-btn">
-                      <i class="icon-check"></i> 通过
-                    </button>
-                    <button @click="reject(app.application_id)" class="action-btn reject-btn">
-                      <i class="icon-close"></i> 拒绝
-                    </button>
-                  </div>
-                  
-                  <transition name="slide-fade">
-                    <div v-if="app.status === '已通过'" class="interview-schedule">
-                      <div v-if="!isEditingInterview[app.application_id] && interviewTimes[app.application_id] && interviewLinks[app.application_id]" class="scheduled-info">
-                        <div class="info-item">
-                          <i class="icon-calendar"></i>
-                          <span>{{ formatDateTime(interviewTimes[app.application_id]) }}</span>
-                        </div>
-                        <div class="info-item">
-                          <i class="icon-link"></i>
-                          <a :href="interviewLinks[app.application_id]" target="_blank">面试链接</a>
-                        </div>
-                        <button @click="editInterview(app.application_id)" class="edit-btn">
-                          <i class="icon-edit"></i> 编辑
-                        </button>
-                      </div>
-                      
-                      <div v-else class="schedule-form">
-                        <div class="form-group">
-                          <label><i class="icon-clock"></i> 面试时间</label>
-                          <input 
-                            type="datetime-local" 
-                            v-model="interviewTimes[app.application_id]"
-                            class="form-input"
-                          />
-                        </div>
-                        <div class="form-group">
-                          <label><i class="icon-video"></i> 面试链接</label>
-                          <input 
-                            type="text" 
-                            v-model="interviewLinks[app.application_id]"
-                            class="form-input"
-                            readonly
-                          />
-                        </div>
-                        <button 
-                          @click="setInterview(app.application_id)" 
-                          class="save-btn"
-                          :disabled="isSubmittingInterview[app.application_id]"
-                        >
-                          <i class="icon-save"></i> 保存安排
-                        </button>
-                      </div>
-                    </div>
-                  </transition>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- 新增岗位对话框 -->
+    <el-dialog
+      v-model="showPositionDialog"
+      title="新增岗位"
+      width="600px"
+    >
+      <el-form :model="positionForm" label-width="100px">
+        <el-form-item label="岗位名称" required>
+          <el-input v-model="positionForm.title" placeholder="请输入岗位名称" />
+        </el-form-item>
+        <el-form-item label="所属部门" required>
+          <el-input v-model="positionForm.department" placeholder="请输入所属部门" />
+        </el-form-item>
+        <el-form-item label="工作地点" required>
+          <el-select v-model="positionForm.city" placeholder="请选择工作地点" class="w-full">
+            <el-option label="北京" value="北京" />
+            <el-option label="上海" value="上海" />
+            <el-option label="深圳" value="深圳" />
+            <el-option label="广州" value="广州" />
+            <el-option label="杭州" value="杭州" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="薪资范围" required>
+          <el-select v-model="positionForm.salary" placeholder="请选择薪资范围" class="w-full">
+            <el-option label="10k-15k" value="10k-15k" />
+            <el-option label="15k-20k" value="15k-20k" />
+            <el-option label="20k-30k" value="20k-30k" />
+            <el-option label="30k以上" value="30k+" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="岗位描述">
+          <el-input
+            v-model="positionForm.description"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入岗位描述"
+          />
+        </el-form-item>
+        <el-form-item label="任职要求">
+          <el-input
+            v-model="positionForm.requirements"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入任职要求"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showPositionDialog = false">取消</el-button>
+          <el-button type="primary" @click="handleSubmitPosition">
+            确认添加
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
-<script>
-import axios from 'axios'
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Search, Plus } from '@element-plus/icons-vue'
 
-export default {
-  name: 'ModernHrDashboard',
-  data() {
-    return {
-      applications: [],
-      loading: false,
-      interviewTimes: {},
-      interviewLinks: {},
-      isEditingInterview: {},
-      isSubmittingInterview: {},
-      searchQuery: '',
-      // 新增：简历预览相关数据
-      showResumeModal: false,
-      currentResume: {
-        url: '',
-        candidateName: ''
-      }
-    }
+// 搜索和筛选
+const searchQuery = ref('')
+const cityFilter = ref('')
+const salaryFilter = ref('')
+const loading = ref(false)
+
+// 模拟岗位数据
+const positions = ref([
+  {
+    id: 1,
+    title: '前端开发工程师',
+    department: '研发中心-前端组',
+    city: '北京',
+    salary: '20k-30k',
+    candidates: 5,
+    status: 'active'
   },
-  computed: {
-    pendingCount() {
-      return this.applications.filter(app => app.status === '待审核').length
-    },
-    approvedCount() {
-      return this.applications.filter(app => app.status === '已通过').length
-    },
-    filteredApplications() {
-      if (!this.searchQuery) return this.applications
-      const query = this.searchQuery.toLowerCase()
-      return this.applications.filter(app => 
-        app.username.toLowerCase().includes(query) || 
-        app.job_title.toLowerCase().includes(query) ||
-        app.application_id.toString().includes(query)
-    )}
+  {
+    id: 2,
+    title: '后端开发工程师',
+    department: '研发中心-后端组',
+    city: '上海',
+    salary: '25k-35k',
+    candidates: 8,
+    status: 'active'
   },
-  created() {
-    this.fetchApplications()
+  {
+    id: 3,
+    title: '产品经理',
+    department: '产品部',
+    city: '深圳',
+    salary: '20k-30k',
+    candidates: 3,
+    status: 'paused'
   },
-  methods: {
-    fetchApplications() {
-      this.loading = true
-      axios.get('/api/apply/all')
-        .then(res => {
-          this.applications = res.data
-
-          this.interviewTimes = {}
-          this.interviewLinks = {}
-          this.isEditingInterview = {}
-          this.isSubmittingInterview = {}
-
-          res.data.forEach(app => {
-            if (app.interview_time) {
-              this.interviewTimes[app.application_id] = app.interview_time.slice(0,16)
-            }
-            if (app.interview_link) {
-              this.interviewLinks[app.application_id] = app.interview_link
-            }
-            this.isEditingInterview[app.application_id] = false
-            this.isSubmittingInterview[app.application_id] = false
-          })
-        })
-        .catch(err => {
-          console.error('数据获取失败：', err)
-          this.showMessage('数据连接中断', 'error')
-        })
-        .finally(() => {
-          this.loading = false
-        })
-    },
-    approve(applicationId) {
-      axios.post('/api/apply/admin/review', {
-        application_id: applicationId,
-        status: '已通过'
-      }).then(() => {
-        const app = this.applications.find(a => a.application_id === applicationId)
-        if (app) app.status = '已通过'
-        this.showMessage('申请已核准', 'success')
-      }).catch(err => {
-        console.error(err)
-        this.showMessage('核准失败', 'error')
-      })
-    },
-    reject(applicationId) {
-      axios.post('/api/apply/admin/review', {
-        application_id: applicationId,
-        status: '已拒绝'
-      }).then(() => {
-        const app = this.applications.find(a => a.application_id === applicationId)
-        if (app) app.status = '已拒绝'
-        this.showMessage('申请已驳回', 'warning')
-      }).catch(err => {
-        console.error(err)
-        this.showMessage('驳回失败', 'error')
-      })
-    },
-    setInterview(applicationId) {
-      const rawTime = this.interviewTimes[applicationId]
-      if (!rawTime) {
-        this.showMessage('请选择面试时间', 'error')
-        return
-      }
-      
-      const formattedTime = rawTime.slice(0, 16)
-      const interviewLink = 'http://localhost:5174/#/AIInterview'
-
-      this.isSubmittingInterview[applicationId] = true
-
-      axios.post('/api/apply/admin/interview', {
-        application_id: applicationId,
-        interview_time: formattedTime,
-        interview_link: interviewLink
-      }).then(() => {
-        this.interviewLinks[applicationId] = interviewLink
-        this.isEditingInterview[applicationId] = false
-        this.showMessage('面试安排已保存', 'success')
-      }).catch(err => {
-        console.error('面试设置失败：', err)
-        this.showMessage('设置保存错误', 'error')
-      }).finally(() => {
-        this.isSubmittingInterview[applicationId] = false
-      })
-    },
-    editInterview(applicationId) {
-      this.isEditingInterview[applicationId] = true
-    },
-    formatDateTime(dtString) {
-      if (!dtString) return ''
-      return dtString.replace('T', ' ')
-    },
-    getStatusClass(status) {
-      return {
-        '已通过': 'status-approved',
-        '已拒绝': 'status-rejected',
-        '待审核': 'status-pending'
-      }[status] || ''
-    },
-    showMessage(message, type) {
-      // 实际项目中可替换为更美观的通知组件
-      alert(message)
-    },
-    // 新增：预览简历方法
-    previewResume(url, candidateName) {
-      this.currentResume = {
-        url: url,
-        candidateName: candidateName
-      }
-      this.showResumeModal = true
-    },
-    // 新增：关闭预览方法
-    closeResumeModal() {
-      this.showResumeModal = false
-      this.currentResume = {
-        url: '',
-        candidateName: ''
-      }
-    },
-    // 新增：获取预览URL方法
-    getPreviewUrl(url) {
-      // 使用Google文档预览服务
-      return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`
-    },
-    // 新增：下载简历方法
-    downloadResume(url) {
-      window.open(url, '_blank')
-    }
+  {
+    id: 4,
+    title: 'UI设计师',
+    department: '设计部',
+    city: '广州',
+    salary: '15k-25k',
+    candidates: 4,
+    status: 'active'
+  },
+  {
+    id: 5,
+    title: '算法工程师',
+    department: '研发中心-算法组',
+    city: '北京',
+    salary: '30k+',
+    candidates: 6,
+    status: 'active'
   }
+])
+
+// 模拟候选人数据
+const candidates = ref([
+  { id: 1, name: '张三', experience: 3 },
+  { id: 2, name: '李四', experience: 5 },
+  { id: 3, name: '王五', experience: 2 },
+  { id: 4, name: '赵六', experience: 4 }
+])
+
+// 筛选岗位
+const filteredPositions = computed(() => {
+  return positions.value.filter(position => {
+    const matchQuery = !searchQuery.value || 
+      position.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      position.department.toLowerCase().includes(searchQuery.value.toLowerCase())
+    
+    const matchCity = !cityFilter.value || position.city === cityFilter.value
+    const matchSalary = !salaryFilter.value || position.salary === salaryFilter.value
+    
+    return matchQuery && matchCity && matchSalary
+  })
+})
+
+// 获取状态类型
+const getStatusType = (status: string) => {
+  const types: Record<string, string> = {
+    active: 'success',
+    paused: 'info',
+    closed: 'danger'
+  }
+  return types[status] || 'info'
+}
+
+// 获取状态文本
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    active: '招聘中',
+    paused: '已暂停',
+    closed: '已关闭'
+  }
+  return texts[status] || status
+}
+
+// 创建面试相关
+const showCreateDialog = ref(false)
+const selectedPosition = ref<any>(null)
+const interviewForm = ref({
+  candidate: '',
+  time: '',
+  type: 'online',
+  location: '',
+  link: '',
+  notes: ''
+})
+
+const handleCreateInterview = (position: any) => {
+  selectedPosition.value = position
+  showCreateDialog.value = true
+}
+
+const generateMeetingLink = () => {
+  interviewForm.value.link = `https://meeting.vimi.ai/${Math.random().toString(36).substring(7)}`
+}
+
+const handleSubmitInterview = () => {
+  // TODO: 提交面试信息
+  ElMessage.success('面试创建成功')
+  showCreateDialog.value = false
+}
+
+// 新增岗位相关
+const showPositionDialog = ref(false)
+const positionForm = ref({
+  title: '',
+  department: '',
+  city: '',
+  salary: '',
+  description: '',
+  requirements: ''
+})
+
+const handleCreatePosition = () => {
+  showPositionDialog.value = true
+}
+
+const handleSubmitPosition = () => {
+  // TODO: 提交岗位信息
+  ElMessage.success('岗位创建成功')
+  showPositionDialog.value = false
+}
+
+// 搜索
+const handleSearch = () => {
+  loading.value = true
+  setTimeout(() => {
+    loading.value = false
+  }, 500)
+}
+
+// 查看详情
+const handleViewDetail = (position: any) => {
+  // TODO: 跳转到岗位详情页
+  console.log('查看岗位详情:', position)
 }
 </script>
 
 <style scoped>
-/* 现代化UI设计变量 */
-.resume-preview-modal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.6);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 9999;
-}
-.resume-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+.interview-create {
+  min-height: calc(100vh - 64px);
 }
 
-.resume-modal {
-  background-color: white;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 900px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  color: #666;
-}
-
-.modal-body {
-  flex: 1;
-  padding: 20px;
-  overflow: auto;
-}
-
-.resume-iframe {
-  width: 100%;
-  height: 100%;
-  min-height: 500px;
-  border: none;
-}
-
-.modal-footer {
-  padding: 12px 24px;
-  border-top: 1px solid #e8e8e8;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.download-btn {
-  padding: 8px 16px;
-  background-color: #4361ee;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.download-btn:hover {
-  background-color: #3a56d4;
-}
-
-.no-resume {
-  text-align: center;
-  padding: 40px;
-  color: #666;
-}
-.resume-preview-overlay {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-}
-.resume-preview-content {
-  width: 80vw;
-  height: 90vh;
-  background: #fff;
+:deep(.el-table) {
   border-radius: 8px;
   overflow: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
 }
-.modal-header {
-  padding: 12px;
-  font-weight: bold;
-  background: #f5f5f5;
-  border-bottom: 1px solid #ddd;
-  display: flex;
-  justify-content: space-between;
-}
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-}
-.resume-iframe {
-  flex: 1;
-  width: 100%;
-  border: none;
-}
-:root {
-  --primary-color: #4361ee;
-  --primary-light: #e6e9ff;
-  --success-color: #4cc9f0;
-  --danger-color: #f72585;
-  --warning-color: #ff9e00;
-  --text-dark: #2b2d42;
-  --text-medium: #6c757d;
-  --text-light: #adb5bd;
-  --bg-color: #f8f9fa;
-  --card-bg: #ffffff;
-  --border-color: #e9ecef;
-  --border-radius: 12px;
-  --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --transition: all 0.3s ease;
-}
-
-/* 基础布局 */
-.modern-hr-dashboard {
-  min-height: 100vh;
-  background-color: var(--bg-color);
-  color: var(--text-dark);
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
-  padding: 2rem;
-}
-
-/* 顶部导航 */
-.dashboard-header {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  margin-bottom: 2rem;
-  padding: 1.5rem 2rem;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dashboard-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--primary-color);
-}
-
-.title-highlight {
-  color: var(--primary-color);
-  font-weight: 800;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-/* 搜索框 */
-.search-container {
-  display: flex;
-  align-items: center;
-  background: var(--bg-color);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--border-color);
-  transition: var(--transition);
-}
-
-.search-container:focus-within {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-.search-container input {
-  background: transparent;
-  border: none;
-  outline: none;
-  min-width: 250px;
-  font-size: 0.95rem;
-  color: var(--text-dark);
-}
-
-/* 数据概览卡片 */
-.metrics-container {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2.5rem;
-}
-
-.metric-card {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  padding: 1.8rem;
-  box-shadow: var(--box-shadow);
-  border: 1px solid var(--border-color);
-  transition: var(--transition);
-  position: relative;
-  overflow: hidden;
-}
-
-.metric-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(67, 97, 238, 0.1);
-}
-
-.metric-value {
-  font-size: 2.5rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  color: var(--primary-color);
-}
-
-.metric-label {
-  font-size: 1rem;
-  color: var(--text-medium);
-  font-weight: 500;
-}
-
-.metric-icon {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  font-size: 2rem;
-  opacity: 0.2;
-}
-
-/* 卡片颜色变体 */
-.total-applications {
-  border-top: 4px solid var(--primary-color);
-}
-
-.pending-review {
-  border-top: 4px solid var(--warning-color);
-}
-
-.approved {
-  border-top: 4px solid var(--success-color);
-}
-
-/* 主内容区域 */
-.main-content {
-  background: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  overflow: hidden;
-}
-
-.content-header {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--text-dark);
-}
-
-/* 表格样式 */
-.applications-table {
-  padding: 1.5rem;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.applications-list {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 10px;
-}
-
-.applications-list th {
-  padding: 1rem 1.5rem;
-  font-weight: 600;
-  color: var(--text-medium);
-  text-align: left;
-  background: var(--bg-color);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 2px solid var(--border-color);
-}
-
-.applications-list td {
-  padding: 1.2rem 1.5rem;
-  vertical-align: middle;
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.application-row {
-  background: var(--card-bg);
-  transition: var(--transition);
-}
-
-.application-row:hover {
-  background: var(--primary-light);
-  box-shadow: 0 2px 8px rgba(67, 97, 238, 0.1);
-}
-
-/* 列宽设置 */
-.col-id { width: 100px; }
-.col-candidate { width: 220px; }
-.col-position { width: 180px; }
-.col-status { width: 120px; }
-.col-resume { width: 150px; }
-.col-actions { width: 200px; }
-
-/* 候选人信息 */
-.candidate-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.candidate-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color), #6a8cff);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.candidate-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.candidate-name {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.candidate-id {
-  font-size: 0.85rem;
-  color: var(--text-light);
-}
-
-/* 岗位信息 */
-.position-title {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.department {
-  font-size: 0.85rem;
-  color: var(--text-light);
-  margin-top: 0.3rem;
-}
-
-/* 状态标签 */
-.status-badge {
-  display: inline-block;
-  padding: 0.4rem 1rem;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-align: center;
-}
-
-.status-approved {
-  background: #e6f7ed;
-  color: #2b8a3e;
-}
-
-.status-rejected {
-  background: #ffebee;
-  color: #c92a2a;
-}
-
-.status-pending {
-  background: #fff8e6;
-  color: #f59f00;
-}
-
-/* 按钮样式 */
-.action-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 2px solid transparent; /* 添加边框 */
-  outline: none;
-}
-
-.approve-btn {
-  background-color: #e8f5e9; /* 浅绿色背景 */
-  color: #2e7d32; /* 深绿色文字 */
-  border-color: #a5d6a7; /* 边框颜色 */
-}
-
-/* 拒绝按钮 - 红色主题 */
-.reject-btn {
-  background-color: #ffebee; /* 浅红色背景 */
-  color: #c62828; /* 深红色文字 */
-  border-color: #ef9a9a; /* 边框颜色 */
-}
-
-.reject-btn:hover {
-  background-color: #ffcdd2; /* 悬停时稍深的红色 */
-  transform: translateY(-2px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-/* 按钮图标样式 */
-.icon-check {
-  color: #2e7d32; /* 绿色图标 */
-}
-
-.icon-close {
-  color: #c62828; /* 红色图标 */
-}
-/* 面试安排表单 */
-.interview-schedule {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: var(--bg-color);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-}
-
-.scheduled-info {
-  font-size: 0.9rem;
-  color: var(--text-medium);
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.info-item a {
-  color: var(--primary-color);
-  text-decoration: none;
-}
-
-.info-item a:hover {
-  text-decoration: underline;
-}
-
-.edit-btn {
-  background: var(--warning-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
-
-.schedule-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  color: var(--text-medium);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.form-input {
-  padding: 0.7rem 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-.save-btn {
-  background: var(--primary-color);
-  color: white;
-  padding: 0.7rem 1rem;
-  font-size: 0.9rem;
-}
-
-/* 加载状态 */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--primary-light);
-  border-top: 4px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  color: var(--text-medium);
-  font-size: 0.95rem;
-}
-
-/* 过渡动画 */
-.slide-fade-enter-active, .slide-fade-leave-active {
-  transition: all 0.3s ease;
-}
-.slide-fade-enter, .slide-fade-leave-to {
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
-/* 响应式设计 */
-@media (max-width: 1024px) {
-  .metrics-container {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .modern-hr-dashboard {
-    padding: 1.5rem;
-  }
-  
-  .metrics-container {
-    grid-template-columns: 1fr;
-  }
-  
-  .header-content {
-    flex-direction: column;
-    gap: 1.2rem;
-    align-items: flex-start;
-  }
-  
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  /* 按钮容器 */
-.action-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-  .search-container {
-    width: 100%;
-  }
-  
-  .content-header {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-  
-  .applications-list th, 
-  .applications-list td {
-    padding: 1rem;
-    font-size: 0.9rem;
-  }
-}
-
-/* 数据卡片基础样式 */
-.metric-card {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-/* 待审核卡片样式 */
-.pending-review {
-  background: linear-gradient(135deg, #81D4FA, #4FC3F7);
-  color: black; /* 白色文字 */
-  border-left: 5px solid #E65100; /* 左侧边框 */
-}
-
-/* 已通过卡片样式 */
-.approved {
-  background: linear-gradient(135deg, #66BB6A, #43A047); /* 绿色渐变 */
-  color: black; /* 白色文字 */
-  border-left: 5px solid #2E7D32; /* 左侧边框 */
-}
-
-/* 数值样式 */
-.metric-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* 标签样式 */
-.metric-label {
-  font-size: 1rem;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-/* 图标样式 */
-.metric-icon {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 2.5rem;
-  opacity: 0.2;
-  color:black; /* 确保图标也是白色 */
-}
-
-/* 悬停效果 */
-.metric-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
 
-/* 响应式调整 */
-@media (max-width: 768px) {
-  .metric-card {
-    padding: 15px;
-  }
-  .metric-value {
-    font-size: 2rem;
-  }
+:deep(.el-dialog__body) {
+  padding: 20px 40px;
 }
 </style>

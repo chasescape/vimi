@@ -5,12 +5,22 @@
       <div class="container mx-auto px-6 py-4 flex items-center justify-between">
         <h1 class="text-2xl font-bold text-white">Vimi-面试官</h1>
         <div class="flex items-center space-x-4">
-          <span class="text-white">{{ username }}</span>
-          <router-link to="/interviewer/profile">
-            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span class="text-blue-600 font-medium">A</span>
+          <span class="text-white">{{ userInfo.username }}</span>
+          <el-dropdown trigger="click">
+            <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer">
+              <span class="text-blue-600 font-medium">{{ userInfo.username?.charAt(0)?.toUpperCase() }}</span>
             </div>
-          </router-link>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="$router.push('/interviewer/profile')">
+                  <el-icon><User /></el-icon>个人信息
+                </el-dropdown-item>
+                <el-dropdown-item divided @click="handleLogout">
+                  <el-icon><SwitchButton /></el-icon>退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
     </header>
@@ -19,11 +29,32 @@
       <!-- 侧边栏 -->
       <nav class="w-64 bg-white shadow-lg h-screen fixed">
         <div class="p-4">
-          <DashboardSidebar 
-            :items="sidebarItems"
-            :activeRoute="$route.path"
-            @navigate="handleNavigation"
-          />
+          <el-menu
+            :default-active="activeMenu"
+            router
+            class="border-none"
+          >
+            <el-menu-item index="/interviewer/home">
+              <el-icon><HomeFilled /></el-icon>
+              <span>首页</span>
+            </el-menu-item>
+            <el-menu-item index="/interviewer/create">
+              <el-icon><Plus /></el-icon>
+              <span>创建面试</span>
+            </el-menu-item>
+            <el-menu-item index="/interviewer/schedule">
+              <el-icon><Calendar /></el-icon>
+              <span>面试日程</span>
+            </el-menu-item>
+            <el-menu-item index="/interviewer/history">
+              <el-icon><List /></el-icon>
+              <span>历史记录</span>
+            </el-menu-item>
+            <el-menu-item index="/interviewer/profile">
+              <el-icon><User /></el-icon>
+              <span>个人信息</span>
+            </el-menu-item>
+          </el-menu>
         </div>
       </nav>
 
@@ -36,55 +67,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import DashboardSidebar from '@/components/layout/DashboardSidebar.vue'
-import { House, Guide, Plus, Calendar , User as UserIcon, View, Reading } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { 
+  HomeFilled, 
+  Calendar, 
+  List, 
+  User, 
+  Plus, 
+  SwitchButton
+} from '@element-plus/icons-vue'
+import { auth } from '@/utils/auth'
 
 const router = useRouter()
-const username = ref('面试官_李明')
+const route = useRoute()
 
-const sidebarItems = ref([
-  {
-    title: '主页',
-    icon: House,
-    route: '/interviewer/home',
-    children: []
-  },
-  {
-    title: '面试选项',
-    icon: Guide,
-    children: [
-        {
-        title: '新建面试',
-        icon: Plus,
-        route: '/interviewer/interview-create'
-      },
-      {
-        title: '面试安排',
-        icon: Calendar,
-        route: '/interviewer/interview-schedule'
-      },
-      {
-        title: '开始面试',
-        icon: View,
-        route: '/interviewer/interview-page'
-      },
-      {
-        title: '面试历史',
-        icon: Reading,
-        route: '/interviewer/interview-history'
-      },
-    ]
-  },
-  {
-    title: '个人中心',
-    icon: UserIcon,
-    route: '/candidate/profile'
-  }
-])
+// 用户信息
+const userInfo = ref(auth.getUser() || {})
 
-const handleNavigation = (route: string) => {
-  router.push(route)
+// 当前激活的菜单项
+const activeMenu = computed(() => route.path)
+
+// 退出登录
+const handleLogout = () => {
+  auth.logout()
+  ElMessage.success('已退出登录')
+  router.push('/login')
 }
 </script>
+
+<style scoped>
+.el-menu {
+  border-right: none;
+}
+
+.el-menu-item {
+  height: 50px;
+  line-height: 50px;
+  margin: 8px 0;
+  border-radius: 8px;
+}
+
+.el-menu-item.is-active {
+  background-color: #e6f4ff !important;
+  color: #1890ff !important;
+}
+
+.el-menu-item:hover {
+  background-color: #f5f5f5 !important;
+}
+
+.el-dropdown-menu {
+  padding: 5px 0;
+}
+
+.el-dropdown-menu__item {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.el-dropdown-menu__item .el-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+:deep(.el-menu-item) {
+  margin: 8px 16px;
+  border-radius: 8px;
+}
+
+:deep(.el-menu-item.is-active) {
+  background-color: #e6f4ff;
+  color: #1890ff;
+}
+
+:deep(.el-menu-item:hover) {
+  background-color: #f5f5f5;
+}
+
+:deep(.el-menu-item .el-icon) {
+  font-size: 18px;
+}
+</style>

@@ -1,3 +1,6 @@
+import os
+os.environ['FLASK_SKIP_DOTENV'] = '1'  # 禁用 Flask 的 .env 自动加载
+
 from app import create_app
 from app import db
 app = create_app()

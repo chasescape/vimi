@@ -1,90 +1,82 @@
 <template>
   <div class="min-h-screen bg-gradient-to-b from-white to-blue-100 flex items-center justify-center p-4">
-    <div class="w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden flex">
+    <div class="w-full max-w-5xl bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
       <!-- 左侧蓝色背景 -->
-      <div class="w-1/3 bg-gradient-to-b from-blue-500 to-blue-600 p-10 flex flex-col justify-center text-white">
-        <h1 class="text-4xl font-bold mb-6">Vimi-AI面试系统</h1>
-        <p class="text-xl mb-8">智能面试平台，助力求职与招聘</p>
+      <div class="w-full md:w-1/3 bg-gradient-to-b from-blue-500 to-blue-600 p-8 md:p-10 flex flex-col justify-center text-white">
+        <h1 class="text-3xl md:text-4xl font-bold mb-4 md:mb-6">Vimi-AI面试系统</h1>
+        <p class="text-lg md:text-xl mb-6 md:mb-8">智能面试平台，助力求职与招聘</p>
         <div class="flex items-center space-x-4">
-          <el-icon :size="30"><Opportunity /></el-icon>
-          <span class="text-lg">开启您的职业新旅程</span>
+          <el-icon :size="24" class="md:text-3xl"><Opportunity /></el-icon>
+          <span class="text-base md:text-lg">开启您的职业新旅程</span>
         </div>
       </div>
 
       <!-- 右侧操作部分 -->
-      <div class="w-2/3 p-12">
-        <el-tabs v-model="activeTab" class="mb-8" type="card">
+      <div class="w-full md:w-2/3 p-8 md:p-12">
+        <el-tabs v-model="activeTab" class="mb-8">
           <el-tab-pane label="应聘者注册" name="candidate">
-            <el-form 
-              :model="formData" 
-              :rules="rules" 
-              ref="registerFormRef"
-              class="mt-6"
-            >
+            <el-form :model="registerForm" :rules="rules" ref="registerFormRef" class="mt-6">
               <el-form-item prop="email" class="mb-6">
                 <el-input 
-                  v-model="formData.email" 
+                  v-model="registerForm.email" 
                   placeholder="请输入邮箱" 
                   size="large"
                   :prefix-icon="Message"
-                  clearable
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="username" class="mb-6">
                 <el-input 
-                  v-model="formData.username" 
+                  v-model="registerForm.username" 
                   placeholder="请输入用户名" 
                   size="large"
                   :prefix-icon="User"
-                  clearable
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="password" class="mb-6">
                 <el-input 
-                  v-model="formData.password" 
+                  v-model="registerForm.password" 
                   type="password" 
                   placeholder="请输入密码" 
                   size="large"
                   :prefix-icon="Lock"
                   show-password
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="confirmPassword" class="mb-6">
                 <el-input 
-                  v-model="formData.confirmPassword" 
+                  v-model="registerForm.confirmPassword" 
                   type="password" 
                   placeholder="请确认密码" 
                   size="large"
                   :prefix-icon="Lock"
                   show-password
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="captcha" class="mb-6">
                 <div class="flex items-center space-x-4">
                   <el-input 
-                    v-model="formData.captcha" 
+                    v-model="registerForm.captcha" 
                     placeholder="请输入验证码" 
                     size="large"
-                    class="flex-1"
+                    class="text-lg flex-1"
                   />
                   <div 
-                    class="w-32 h-12 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                    class="w-32 h-12 bg-gray-200 rounded flex items-center justify-center cursor-pointer"
                     @click="refreshCaptcha"
                   >
                     <span class="text-xl font-mono">{{ captchaText }}</span>
                   </div>
                 </div>
               </el-form-item>
-              
-              <el-form-item>
+              <el-form-item class="mt-10">
                 <el-button 
                   type="primary" 
                   size="large" 
-                  class="w-full" 
+                  class="w-full text-lg" 
                   :loading="loading"
                   @click="handleRegister"
                 >
@@ -95,86 +87,80 @@
           </el-tab-pane>
           
           <el-tab-pane label="面试官注册" name="interviewer">
-            <el-form 
-              :model="formData" 
-              :rules="rules" 
-              ref="registerFormRef"
-              class="mt-6"
-            >
+            <el-form :model="registerForm" :rules="rules" ref="registerFormRef" class="mt-6">
               <el-form-item prop="email" class="mb-6">
                 <el-input 
-                  v-model="formData.email" 
+                  v-model="registerForm.email" 
                   placeholder="请输入邮箱" 
                   size="large"
                   :prefix-icon="Message"
-                  clearable
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="username" class="mb-6">
                 <el-input 
-                  v-model="formData.username" 
+                  v-model="registerForm.username" 
                   placeholder="请输入用户名" 
                   size="large"
                   :prefix-icon="User"
-                  clearable
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="password" class="mb-6">
                 <el-input 
-                  v-model="formData.password" 
+                  v-model="registerForm.password" 
                   type="password" 
                   placeholder="请输入密码" 
                   size="large"
                   :prefix-icon="Lock"
                   show-password
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="confirmPassword" class="mb-6">
                 <el-input 
-                  v-model="formData.confirmPassword" 
+                  v-model="registerForm.confirmPassword" 
                   type="password" 
                   placeholder="请确认密码" 
                   size="large"
                   :prefix-icon="Lock"
                   show-password
+                  class="text-lg"
                 />
               </el-form-item>
-              
               <el-form-item prop="inviteCode" class="mb-6">
                 <el-input 
-                  v-model="formData.inviteCode" 
-                  placeholder="请输入邀请码(仅面试官需要)" 
+                  v-model="registerForm.inviteCode" 
+                  placeholder="请输入邀请码 VIMI2024" 
                   size="large"
                   :prefix-icon="Key"
-                  clearable
+                  class="text-lg"
                 />
+                <div class="text-gray-500 text-sm mt-1">
+                  * 面试官注册需要输入邀请码：VIMI2024
+                </div>
               </el-form-item>
-              
               <el-form-item prop="captcha" class="mb-6">
                 <div class="flex items-center space-x-4">
                   <el-input 
-                    v-model="formData.captcha" 
+                    v-model="registerForm.captcha" 
                     placeholder="请输入验证码" 
                     size="large"
-                    class="flex-1"
+                    class="text-lg flex-1"
                   />
                   <div 
-                    class="w-32 h-12 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                    class="w-32 h-12 bg-gray-200 rounded flex items-center justify-center cursor-pointer"
                     @click="refreshCaptcha"
                   >
                     <span class="text-xl font-mono">{{ captchaText }}</span>
                   </div>
                 </div>
               </el-form-item>
-              
-              <el-form-item>
+              <el-form-item class="mt-10">
                 <el-button 
                   type="primary" 
                   size="large" 
-                  class="w-full" 
+                  class="w-full text-lg" 
                   :loading="loading"
                   @click="handleRegister"
                 >
@@ -187,9 +173,7 @@
 
         <div class="text-center mt-8">
           <span class="text-gray-600">已有账号？</span>
-          <router-link to="/auth/login" class="text-blue-600 font-medium ml-2 hover:text-blue-700 transition-colors">
-            立即登录
-          </router-link>
+          <router-link to="/login" class="text-blue-600 font-medium ml-2">立即登录</router-link>
         </div>
       </div>
     </div>
@@ -206,12 +190,11 @@ import { ref, reactive } from 'vue'
 import { User, Lock, Message, Key, Opportunity } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { authApi } from '@/api/auth'
 import type { FormInstance } from 'element-plus'
+import { authApi } from '@/api/auth'
 
 const router = useRouter()
 const activeTab = ref('candidate')
-const registerFormRef = ref<FormInstance>()
 const loading = ref(false)
 
 // 生成随机验证码
@@ -229,7 +212,7 @@ const refreshCaptcha = () => {
   captchaText.value = generateCaptcha()
 }
 
-const formData = reactive({
+const registerForm = reactive({
   email: '',
   username: '',
   password: '',
@@ -238,8 +221,10 @@ const formData = reactive({
   captcha: ''
 })
 
+const registerFormRef = ref<FormInstance>()
+
 const validatePassword = (rule: any, value: string, callback: Function) => {
-  if (value !== formData.password) {
+  if (value !== registerForm.password) {
     callback(new Error('两次输入密码不一致'))
   } else {
     callback()
@@ -277,7 +262,7 @@ const rules = {
   ],
   captcha: [
     { required: true, message: '请输入验证码', trigger: 'blur' },
-    { pattern: /^[A-Z0-9]{4}$/, message: '验证码格式不正确', trigger: 'blur' }
+    { pattern: /^[A-Za-z0-9]{4}$/, message: '验证码格式不正确', trigger: 'blur' }
   ]
 }
 
@@ -288,37 +273,41 @@ const handleRegister = async () => {
     await registerFormRef.value.validate()
 
     // 验证码检查
-    if (formData.captcha !== captchaText.value) {
+    if (registerForm.captcha !== captchaText.value) {
       ElMessage.error('验证码错误')
       refreshCaptcha()
       return
     }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (registerForm.password !== registerForm.confirmPassword) {
       ElMessage.error('两次输入密码不一致')
+      return
+    }
+
+    if (activeTab.value === 'interviewer' && !registerForm.inviteCode) {
+      ElMessage.error('请输入邀请码')
       return
     }
 
     loading.value = true
 
-    // 调用注册API
     const response = await authApi.register({
-      username: formData.username,
-      email: formData.email,
-      password: formData.password,
-      role: activeTab.value === 'interviewer' ? 'interviewer' : 'candidate',
-      inviteCode: activeTab.value === 'interviewer' ? formData.inviteCode : undefined
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password,
+      role: activeTab.value as 'candidate' | 'interviewer',
+      inviteCode: activeTab.value === 'interviewer' ? registerForm.inviteCode : undefined
     })
 
     if (response.data.success) {
       ElMessage.success('注册成功')
-      router.push('/auth/login')
+      router.push('/login')
     } else {
       ElMessage.error(response.data.message || '注册失败')
       refreshCaptcha()
     }
   } catch (error: any) {
-    console.error('注册错误:', error)
+    console.error('注册失败:', error)
     ElMessage.error(error.response?.data?.message || '注册失败，请稍后重试')
     refreshCaptcha()
   } finally {
@@ -334,10 +323,21 @@ const handleRegister = async () => {
   height: 50px;
 }
 
+.el-input {
+  font-size: 16px;
+}
+
+.el-button {
+  height: 50px;
+  font-size: 18px;
+}
+
 :deep(.el-input__wrapper) {
   background-color: #f8fafc !important;
   box-shadow: none !important;
   border: 1px solid #e2e8f0 !important;
+  height: 50px;
+  padding: 0 15px;
 }
 
 :deep(.el-input__wrapper:hover) {
@@ -350,24 +350,88 @@ const handleRegister = async () => {
 }
 
 :deep(.el-input__inner) {
-  height: 44px !important;
-  line-height: 44px !important;
+  height: 48px !important;
+  line-height: 48px !important;
   font-size: 16px !important;
 }
 
 :deep(.el-input__prefix-icon) {
   font-size: 18px !important;
   color: #94a3b8 !important;
-}
-
-.el-button {
-  height: 44px;
-  font-size: 16px;
+  margin-right: 8px;
 }
 
 :deep(.el-form-item__error) {
   color: #ef4444 !important;
   font-size: 14px !important;
   padding-top: 4px !important;
+}
+
+:deep(.el-tabs__nav) {
+  width: 100%;
+  display: flex;
+}
+
+:deep(.el-tabs__item) {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  color: #64748b;
+}
+
+:deep(.el-tabs__item.is-active) {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+:deep(.el-tabs__active-bar) {
+  background-color: #3b82f6;
+}
+
+.captcha-box {
+  height: 50px !important;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.captcha-box:hover {
+  background-color: #e2e8f0 !important;
+}
+
+@media (max-width: 768px) {
+  .el-tabs__item {
+    font-size: 16px;
+    padding: 0 15px;
+    height: 44px;
+  }
+
+  .el-input {
+    font-size: 14px;
+  }
+
+  :deep(.el-input__wrapper) {
+    height: 44px;
+  }
+
+  :deep(.el-input__inner) {
+    height: 42px !important;
+    line-height: 42px !important;
+    font-size: 14px !important;
+  }
+
+  :deep(.el-input__prefix-icon) {
+    font-size: 16px !important;
+  }
+
+  .el-button {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .captcha-box {
+    height: 44px !important;
+  }
 }
 </style>

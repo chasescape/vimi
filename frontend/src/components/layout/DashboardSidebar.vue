@@ -17,22 +17,22 @@
       <div
         :class="[
           'px-4 py-3 cursor-pointer transition-all relative',
-          activeRoute === item.route ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-100'
+          activeRoute === item.route ? 'text-blue-600 bg-blue-50' : 'hover:bg-gray-100'
         ]"
         @click="handleItemClick(item)"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <el-icon v-if="item.icon" :size="20">
+            <el-icon v-if="item.icon" :size="20" :class="activeRoute === item.route ? 'text-blue-600' : 'text-black'">
               <component :is="item.icon" />
             </el-icon>
-            <span class="text-sm font-medium">{{ item.title }}</span>
+            <span class="text-sm font-medium text-black">{{ item.title }}</span>
           </div>
           <el-icon
             v-if="item.children?.length"
             :size="14"
             :class="[
-              'transform transition-transform',
+              'transform transition-transform text-black',
               expandedPaths.includes(item.route) ? 'rotate-90' : ''
             ]"
           >
@@ -55,10 +55,7 @@
         />
       </div>
     </div>
-    
-    
   </div>
-
 </template>
 
 <script setup lang="ts">
@@ -70,15 +67,17 @@ import { ArrowRight } from '@element-plus/icons-vue'
 const activeElementPath = inject('active-element-path', ref<string[]>([]))
 provide('active-element-path', activeElementPath)
 
+interface MenuItem {
+  title: string;
+  icon?: any;
+  route?: string;
+  children?: MenuItem[];
+}
+
 // 新增属性
 const props = defineProps({
   items: {
-    type: Array as () => Array<{
-      title: string
-      icon?: any
-      route: string
-      children?: any[]
-    }>,
+    type: Array as () => MenuItem[],
     required: true
   },
   activeRoute: {
@@ -249,11 +248,21 @@ const getElementPath = (el: HTMLElement): string[] => {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e0;
+  background: #4a5568;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0aec0;
+  background: #2d3748;
+}
+
+/* 激活状态的菜单项样式 */
+.router-link-active {
+  @apply text-blue-600 bg-blue-50;
+}
+
+/* 菜单项悬停效果 */
+.group:hover > div {
+  @apply bg-gray-100;
 }
 </style>

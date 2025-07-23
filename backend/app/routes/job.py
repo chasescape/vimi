@@ -8,17 +8,27 @@ from app.models.job import Job
 from app import db
 from datetime import datetime
 from app.models.jobApplication import JobApplication
-job_bp = Blueprint('job', __name__, url_prefix='/job')
-jobApplication_bp = Blueprint('jobApplication', __name__, url_prefix='/apply')
 from app.xunfei_face import gen_face_verify_payload
 import requests
 from app.ise_eval import ise_eval
 from app.models.voice_record import VoiceRecord
 import time
 import json
-from dotenv import load_dotenv
 
-load_dotenv()
+job_bp = Blueprint('job', __name__, url_prefix='/job')
+jobApplication_bp = Blueprint('jobApplication', __name__, url_prefix='/apply')
+
+# 初始化OSS客户端
+def get_oss_bucket():
+    auth = oss2.Auth(
+        current_app.config['OSS_ACCESS_KEY_ID'],
+        current_app.config['OSS_ACCESS_KEY_SECRET']
+    )
+    return oss2.Bucket(
+        auth,
+        current_app.config['OSS_ENDPOINT'],
+        current_app.config['OSS_BUCKET_NAME']
+    )
 
 # ✅ 查询所有岗位
 @job_bp.route('/list', methods=['GET'])
@@ -234,16 +244,23 @@ def get_approved_applied_jobs():
 
     return jsonify(result)
 
-# 阿里云 OSS 配置
-# 简历上传接口
-OSS_ENDPOINT = os.getenv('OSS_ENDPOINT', 'oss-cn-guangzhou.aliyuncs.com')
-OSS_BUCKET_NAME = os.getenv('OSS_BUCKET_NAME', 'vimi-save')
-OSS_ACCESS_KEY_ID = os.getenv('OSS_ACCESS_KEY_ID')
-OSS_ACCESS_KEY_SECRET = os.getenv('OSS_ACCESS_KEY_SECRET')
-
 # 初始化OSS客户端
-auth = oss2.Auth(OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET)
-bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET_NAME)
+def get_oss_bucket():
+    auth = oss2.Auth(
+        current_app.config['OSS_ACCESS_KEY_ID'],
+        current_app.config['OSS_ACCESS_KEY_SECRET']
+    )
+    return oss2.Bucket(
+        auth,
+        current_app.config['OSS_ENDPOINT'],
+        current_app.config['OSS_BUCKET_NAME']
+    )
+
+# 获取OSS bucket实例
+def get_bucket():
+    if not hasattr(get_bucket, '_bucket'):
+        get_bucket._bucket = get_oss_bucket()
+    return get_bucket._bucket
 
 @jobApplication_bp.route('/upload_resume', methods=['POST'])
 def upload_resume():
@@ -264,8 +281,9 @@ def upload_resume():
 
     # 保存到 OSS
     try:
+        bucket = get_bucket()
         bucket.put_object(oss_path, file.stream)
-        resume_url = f'https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/{oss_path}'
+        resume_url = f'https://{current_app.config["OSS_BUCKET_NAME"]}.{current_app.config["OSS_ENDPOINT"]}/{oss_path}'
 
         # 更新数据库（查找现有记录，更新 resume_path）
         application = JobApplication.query.filter_by(user_id=user_id, job_id=job_id).first()
@@ -303,8 +321,9 @@ def upload_audio():
         filename = secure_filename(file.filename)
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         oss_key = f'audios/{timestamp}_{filename}'
+        bucket = get_bucket()
         bucket.put_object(oss_key, file.stream)
-        audio_url = f'https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}/{oss_key}'
+        audio_url = f'https://{current_app.config["OSS_BUCKET_NAME"]}.{current_app.config["OSS_ENDPOINT"]}/{oss_key}'
         print(f'[上传成功] OSS地址: {audio_url}')
 
         # 更新 job_application 表
