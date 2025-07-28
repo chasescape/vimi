@@ -46,7 +46,7 @@ def login():
 
         # 生成访问令牌
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),  # 强制转成字符串
             expires_delta=timedelta(days=1)
         )
 
@@ -114,10 +114,10 @@ def register():
 
         # 生成访问令牌
         access_token = create_access_token(
-            identity=user.id,
+            identity=str(user.id),  # 强制转成字符串
             expires_delta=timedelta(days=1)
         )
-        
+
         return jsonify({
             'success': True,
             'message': '注册成功',
@@ -132,32 +132,55 @@ def register():
             'success': False,
             'message': '注册失败，请稍后重试'
         }), 500
-
+###查看用户信息
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
-    """获取用户信息"""
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user:
-            return jsonify({
-                'success': False,
-                'message': '用户不存在'
-            }), 404
+        user_id = get_jwt_identity()  # 拿到的是字符串
+        user = User.query.get(int(user_id))  # 转成 int 查数据库
 
-            return jsonify({
-                'success': True,
-            'user': user.to_dict()
-        })
-            
+        if not user:
+            return jsonify({'success': False, 'message': '用户不存在'}), 404
+
+        return jsonify({'success': True, 'user': user.to_dict()}), 200
     except Exception as e:
         logger.error(f"Get profile error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': '获取用户信息失败'
-        }), 500
+        return jsonify({'success': False, 'message': '获取用户信息失败'}), 500
+
+
+
+@auth_bp.route('/update', methods=['POST'])
+@jwt_required()
+def update_profile():
+    """更新用户个人信息"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(int(user_id))
+        if not user:
+            return jsonify({'success': False, 'message': '用户不存在'}), 404
+
+        data = request.get_json()
+
+        # 支持更新的字段
+        if 'name' in data:
+            user.name = data['name']
+        if 'email' in data:
+            user.email = data['email']
+        if 'phone' in data:
+            user.phone = data['phone']
+        if 'location' in data and isinstance(data['location'], dict):
+            # 确保 location 不是 None
+            user.location = data['location']
+
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': '更新成功', 'user': user.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Update profile error: {str(e)}")
+        return jsonify({'success': False, 'message': '更新失败，请稍后重试'}), 500
+
 
 @auth_bp.route('/send-code', methods=['POST'])
 def send_verification_code():
