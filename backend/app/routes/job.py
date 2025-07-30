@@ -1,4 +1,3 @@
-# app/routes/job.py
 import os
 import oss2
 from flask import current_app
@@ -29,6 +28,122 @@ def get_oss_bucket():
         current_app.config['OSS_ENDPOINT'],
         current_app.config['OSS_BUCKET_NAME']
     )
+# 修改岗位信息
+@job_bp.route('/<int:job_id>', methods=['PUT'])
+def update_job(job_id):
+    job = Job.query.get(job_id)
+    if not job:
+        return jsonify({'error': '岗位不存在'}), 404
+
+    data = request.json or {}
+    try:
+        for column in Job.__table__.columns.keys():
+            if column == 'id':
+                continue
+            if column in data:
+                value = data[column]
+                # 日期字段处理
+                if column in ['publish_date', 'expire_date'] and isinstance(value, str) and value:
+                    try:
+                        value = datetime.strptime(value, '%Y-%m-%d')
+                    except ValueError:
+                        continue  # 如果格式不对则跳过
+                setattr(job, column, value)
+
+        db.session.commit()
+        return jsonify({'message': '岗位信息更新成功'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'更新失败: {str(e)}'}), 500
+
+
+# 添加岗位
+@job_bp.route('/add', methods=['POST'])
+def add_job():
+    """
+    添加岗位，同时支持上传公司 Logo（可选）
+    前端需用 multipart/form-data 传递：
+    - logo: 图片文件（可选）
+    - 其他字段通过 form-data 一并传
+    """
+    # 取字段
+    company_id = request.form.get('company_id', type=int) or 1
+    company_name = request.form.get('company_name')
+    job_title = request.form.get('job_title')
+    job_category = request.form.get('job_category')
+    salary_min = request.form.get('salary_min', type=int)
+    salary_max = request.form.get('salary_max', type=int)
+    salary_type = request.form.get('salary_type')
+    experience_req = request.form.get('experience_req')
+    education_req = request.form.get('education_req')
+    location = request.form.get('location')
+    job_nature = request.form.get('job_nature')
+    description = request.form.get('description')
+    requirements = request.form.get('requirements')
+    benefits = request.form.get('benefits')
+    expire_date_str = request.form.get('expire_date')
+    contact_email = request.form.get('contact_email')
+    contact_phone = request.form.get('contact_phone')
+    address_detail = request.form.get('address_detail')
+
+    # 处理过期时间
+    expire_date = None
+    if expire_date_str:
+        try:
+            expire_date = datetime.strptime(expire_date_str, '%Y-%m-%d')
+        except ValueError:
+            expire_date = None
+
+    # 处理公司 Logo 上传
+    company_logo_url = None
+    file = request.files.get('logo')
+    if file:
+        import base64, requests
+        photo_base64 = base64.b64encode(file.read()).decode()
+        api_url = 'https://freeimage.host/api/1/upload'
+        api_key = '6d207e02198a847aa98d0a2a901485a5'
+        payload = {
+            'key': api_key,
+            'action': 'upload',
+            'source': photo_base64,
+            'format': 'json'
+        }
+        try:
+            res = requests.post(api_url, data=payload)
+            res_json = res.json()
+            if res_json.get('status_code') == 200:
+                company_logo_url = res_json['image']['url']
+        except Exception as e:
+            return jsonify({'error': f'Logo 上传失败: {str(e)}'}), 500
+
+    # 创建 Job 实例
+    job = Job(
+        company_id=company_id,
+        job_title=job_title,
+        job_category=job_category,
+        salary_min=salary_min,
+        salary_max=salary_max,
+        salary_type=salary_type,
+        experience_req=experience_req,
+        education_req=education_req,
+        location=location,
+        job_nature=job_nature,
+        description=description,
+        requirements=requirements,
+        benefits=benefits,
+        expire_date=expire_date,
+        contact_email=contact_email,
+        contact_phone=contact_phone,
+        address_detail=address_detail
+    )
+
+    try:
+        db.session.add(job)
+        db.session.commit()
+        return jsonify({'msg': '岗位添加成功', 'job_id': job.id, 'logo_url': company_logo_url})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'添加失败: {str(e)}'}), 500
 
 # ✅ 查询所有岗位
 @job_bp.route('/list', methods=['GET'])
@@ -38,17 +153,29 @@ def list_jobs():
     for j in jobs:
         result.append({
             'id': j.id,
+            'company_id': j.company_id,
             'job_title': j.job_title,
-            'location': j.location,
-            'salary': f"{j.salary_min} - {j.salary_max}元/{j.salary_type}",
+            'job_category': j.job_category,
+            'salary_min': j.salary_min,
+            'salary_max': j.salary_max,
+            'salary_type': j.salary_type,
             'experience_req': j.experience_req,
             'education_req': j.education_req,
-            'publish_date': j.publish_date.strftime('%Y-%m-%d'),
+            'location': j.location,
+            'job_nature': j.job_nature,
+            'description': j.description,
+            'requirements': j.requirements,
+            'benefits': j.benefits,
+            'publish_date': j.publish_date.strftime('%Y-%m-%d') if j.publish_date else None,
+            'expire_date': j.expire_date.strftime('%Y-%m-%d') if j.expire_date else None,
+            'view_count': j.view_count,
+            'apply_count': j.apply_count,
             'status': j.status,
+            'contact_email': j.contact_email,
+            'contact_phone': j.contact_phone,
+            'address_detail': j.address_detail
         })
     return jsonify(result)
-
-
 # ✅ 根据ID获取岗位详情
 @job_bp.route('/<int:job_id>', methods=['GET'])
 def get_job(job_id):
@@ -77,28 +204,20 @@ def get_job(job_id):
         'status': job.status
     })
 
-
-# ✅ 更新岗位
-@job_bp.route('/update/<int:job_id>', methods=['PUT'])
-def update_job(job_id):
-    job = Job.query.get_or_404(job_id)
-    data = request.get_json()
-    job.job_title = data.get('job_title', job.job_title)
-    job.salary_min = data.get('salary_min', job.salary_min)
-    job.salary_max = data.get('salary_max', job.salary_max)
-    job.description = data.get('description', job.description)
-    # 可以继续加其他字段
-    db.session.commit()
-    return jsonify({'msg': '岗位更新成功'})
-
-
-# ✅ 删除岗位
-@job_bp.route('/delete/<int:job_id>', methods=['DELETE'])
+# 删除岗位
+@job_bp.route('/<int:job_id>', methods=['DELETE'])
 def delete_job(job_id):
-    job = Job.query.get_or_404(job_id)
-    db.session.delete(job)
-    db.session.commit()
-    return jsonify({'msg': '岗位删除成功'})
+    job = Job.query.get(job_id)
+    if not job:
+        return jsonify({'error': '岗位不存在'}), 404
+
+    try:
+        db.session.delete(job)
+        db.session.commit()
+        return jsonify({'message': '岗位删除成功'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'删除失败: {str(e)}'}), 500
 
 
 #申请岗位
@@ -158,7 +277,7 @@ def get_applied_jobs():
             'apply_time': app.apply_time.strftime('%Y-%m-%d %H:%M:%S'),
         })
     return jsonify(result)
-#查看所有申请记录
+
 # 查看所有岗位申请记录（包含岗位信息和用户信息）
 @jobApplication_bp.route('/all', methods=['GET'])
 def get_all_applications():
@@ -181,7 +300,6 @@ def get_all_applications():
             'photo_path': app.photo_path
         })
     return jsonify(result)
-
 
 #审核申请
 @jobApplication_bp.route('/admin/review', methods=['POST'])
