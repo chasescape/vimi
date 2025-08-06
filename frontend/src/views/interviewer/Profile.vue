@@ -1,418 +1,268 @@
 <template>
-  <div class="profile-page p-6">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- 左侧个人信息卡片 -->
-      <div class="md:col-span-1">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="text-center mb-6">
-            <el-avatar 
-              :size="100" 
-              :src="userInfo.avatar"
-              class="mb-4"
-            >
-              {{ userInfo.name?.charAt(0)?.toUpperCase() }}
-            </el-avatar>
-            <h2 class="text-xl font-bold">{{ userInfo.name }}</h2>
-            <p class="text-gray-500">{{ userInfo.title }}</p>
+  <div class="profile-page bg-gradient-to-br from-blue-50 to-purple-50 p-6 min-h-screen">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid grid-cols-1 gap-6"> 
+        <!-- 调整左右比例为3:7，右侧适度放大 -->
+        <div class="grid grid-cols-1 md:grid-cols-[3fr_7fr] gap-6"> 
+          <!-- 左侧用户信息卡片 -->
+          <div>
+            <div class="bg-white rounded-2xl shadow-xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-white/20">
+              <div class="text-center mb-6">
+                <div class="relative inline-block">
+                  <el-avatar 
+                    :size="100" 
+                    :src="userInfo.avatar" 
+                    class="mb-4 border-4 border-white/80 shadow-lg ring-4 ring-blue-200/50 hover:ring-blue-300/50 transition-all duration-300"
+                  >
+                    {{ (userInfo.name || userInfo.username)?.charAt(0)?.toUpperCase() }}
+                  </el-avatar>
+                  <div class="absolute bottom-2 right-2 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">{{ userInfo.name || userInfo.username }}</h2>
+                <p class="text-gray-500 mt-2">
+                  {{ userInfo.role === 'candidate' ? '应聘者' : (userInfo.role === 'interviewer' ? '面试官' : '未知角色') }}
+                </p>
+              </div>
+
+              <!-- 基本信息展示 -->
+              <div class="border-t border-gray-100 pt-4 space-y-3">
+                <div class="flex items-center p-3 rounded-lg hover:bg-blue-50/50 transition-colors duration-200">
+                  <el-icon class="text-blue-400 mr-3 text-lg"><Message /></el-icon>
+                  <span class="text-gray-700">{{ userInfo.email || '未填写' }}</span>
+                </div>
+                <div class="flex items-center p-3 rounded-lg hover:bg-blue-50/50 transition-colors duration-200">
+                  <el-icon class="text-blue-400 mr-3 text-lg"><Phone /></el-icon>
+                  <span class="text-gray-700">{{ userInfo.phone || '未填写' }}</span>
+                </div>
+                <div class="flex items-center p-3 rounded-lg hover:bg-blue-50/50 transition-colors duration-200">
+                  <el-icon class="text-blue-400 mr-3 text-lg"><Location /></el-icon>
+                  <span class="text-gray-700">
+                    {{ userInfo.location?.province || '' }} {{ userInfo.location?.city || '' }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="border-t pt-4">
-            <div class="flex items-center mb-4">
-              <el-icon class="text-gray-400 mr-2"><Message /></el-icon>
-              <span class="text-gray-600">{{ userInfo.email }}</span>
-            </div>
-            <div class="flex items-center mb-4">
-              <el-icon class="text-gray-400 mr-2"><Iphone as Phone /></el-icon>
-              <span class="text-gray-600">{{ userInfo.phone }}</span>
-            </div>
-            <div class="flex items-center mb-4">
-              <el-icon class="text-gray-400 mr-2"><Location /></el-icon>
-              <span class="text-gray-600">{{ userInfo.location }}</span>
-            </div>
-            <div class="flex items-center">
-              <el-icon class="text-gray-400 mr-2"><House as Office /></el-icon>
-              <span class="text-gray-600">{{ userInfo.department }}</span>
-            </div>
-          </div>
-
-          <div class="border-t pt-4 mt-4">
-            <h3 class="text-lg font-medium mb-3">专业领域</h3>
-            <div class="flex flex-wrap gap-2">
-              <el-tag 
-                v-for="skill in userInfo.skills" 
-                :key="skill"
-                size="small"
-              >
-                {{ skill }}
-              </el-tag>
+          <!-- 右侧编辑区（适度放大） -->
+          <div>
+            <div class="bg-white rounded-2xl shadow-xl p-7 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-white/20">
+              <div class="flex justify-between items-center mb-7">
+                <h3 class="text-xl font-semibold flex items-center">
+                  <el-icon class="text-blue-500 mr-2 text-xl"><Edit /></el-icon>
+                  <span class="text-gray-800">编辑资料</span>
+                </h3>
+                <el-button 
+                  type="primary" 
+                  @click="saveProfile" 
+                  class="shadow-md hover:shadow-lg transition-all duration-300 px-5 py-2"
+                >
+                  <el-icon class="mr-1"><Check /></el-icon>
+                  保存修改
+                </el-button>
+              </div>
+              
+              <el-form :model="profileForm" label-width="110px">
+                <el-form-item label="姓名" class="mb-7">
+                  <el-input 
+                    v-model="profileForm.name" 
+                    placeholder="请输入姓名" 
+                    class="text-base h-11 hover:shadow-md transition-all duration-300 rounded-xl"
+                  />
+                </el-form-item>
+                <el-form-item label="邮箱" class="mb-7">
+                  <el-input 
+                    v-model="profileForm.email" 
+                    placeholder="请输入邮箱" 
+                    class="text-base h-11 hover:shadow-md transition-all duration-300 rounded-xl"
+                  />
+                </el-form-item>
+                <el-form-item label="手机号" class="mb-7">
+                  <el-input 
+                    v-model="profileForm.phone" 
+                    placeholder="请输入手机号" 
+                    class="text-base h-11 hover:shadow-md transition-all duration-300 rounded-xl"
+                  />
+                </el-form-item>
+                <el-form-item label="所在地" class="mb-6">
+                  <div class="flex gap-5">
+                    <el-input 
+                      v-model="profileForm.location.province" 
+                      placeholder="省份" 
+                      class="text-base h-11 hover:shadow-md transition-all duration-300 rounded-xl flex-1"
+                    />
+                    <el-input 
+                      v-model="profileForm.location.city" 
+                      placeholder="城市" 
+                      class="text-base h-11 hover:shadow-md transition-all duration-300 rounded-xl flex-1"
+                    />
+                  </div>
+                </el-form-item>
+              </el-form>
             </div>
           </div>
         </div>
 
-        <!-- 面试统计 -->
-        <div class="bg-white rounded-lg shadow-md p-6 mt-6">
-          <h3 class="text-lg font-medium mb-4">面试统计</h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="text-center p-4 bg-blue-50 rounded-lg">
-              <p class="text-2xl font-bold text-blue-600">{{ stats.totalInterviews }}</p>
-              <p class="text-gray-600">总面试场次</p>
+        <!-- 第二行：面试统计 -->
+        <div class="bg-white rounded-2xl shadow-xl p-6 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-white/20">
+          <h3 class="text-lg font-medium mb-4 flex items-center">
+            <el-icon class="text-purple-500 mr-2"><DataAnalysis /></el-icon>
+            <span class="text-gray-800">面试统计</span>
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"> 
+            <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-300 transform hover:scale-105">
+              <p class="text-4xl font-bold text-blue-600">{{ stats.total }}</p>
+              <p class="text-gray-600 mt-2">总面试场次</p>
             </div>
-            <div class="text-center p-4 bg-green-50 rounded-lg">
-              <p class="text-2xl font-bold text-green-600">{{ stats.thisMonth }}</p>
-              <p class="text-gray-600">本月面试</p>
+            <div class="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-300 transform hover:scale-105">
+              <p class="text-4xl font-bold text-green-600">{{ stats.month }}</p>
+              <p class="text-gray-600 mt-2">本月面试</p>
             </div>
-            <div class="text-center p-4 bg-purple-50 rounded-lg">
-              <p class="text-2xl font-bold text-purple-600">{{ stats.avgScore }}分</p>
-              <p class="text-gray-600">平均评分</p>
+            <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:from-purple-100 hover:to-purple-200 transition-all duration-300 transform hover:scale-105">
+              <p class="text-4xl font-bold text-purple-600">{{ stats.avgScore }}分</p>
+              <p class="text-gray-600 mt-2">平均评分</p>
             </div>
-            <div class="text-center p-4 bg-orange-50 rounded-lg">
-              <p class="text-2xl font-bold text-orange-600">{{ stats.passRate }}%</p>
-              <p class="text-gray-600">通过率</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 右侧内容区 -->
-      <div class="md:col-span-2">
-        <!-- 个人信息设置 -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div class="flex justify-between items-center mb-6">
-            <h3 class="text-lg font-medium">个人信息设置</h3>
-            <el-button type="primary" @click="handleSaveProfile">
-              保存修改
-            </el-button>
-          </div>
-
-          <el-form :model="profileForm" label-width="100px">
-            <el-form-item label="姓名">
-              <el-input v-model="profileForm.name" />
-            </el-form-item>
-            <el-form-item label="职位">
-              <el-input v-model="profileForm.title" />
-            </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input v-model="profileForm.email" />
-            </el-form-item>
-            <el-form-item label="手机">
-              <el-input v-model="profileForm.phone" />
-            </el-form-item>
-            <el-form-item label="所在地">
-              <el-input v-model="profileForm.location" />
-            </el-form-item>
-            <el-form-item label="部门">
-              <el-input v-model="profileForm.department" />
-            </el-form-item>
-            <el-form-item label="专业领域">
-              <el-select
-                v-model="profileForm.skills"
-                multiple
-                filterable
-                allow-create
-                default-first-option
-                placeholder="请选择或输入专业领域"
-                class="w-full"
-              >
-                <el-option
-                  v-for="skill in skillOptions"
-                  :key="skill"
-                  :label="skill"
-                  :value="skill"
-                />
-              </el-select>
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- 账号安全设置 -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <h3 class="text-lg font-medium mb-6">账号安全设置</h3>
-          
-          <div class="space-y-4">
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h4 class="font-medium">修改密码</h4>
-                <p class="text-gray-500 text-sm">定期更改密码可以提高账号安全性</p>
-              </div>
-              <el-button @click="showChangePassword = true">修改</el-button>
-            </div>
-
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h4 class="font-medium">绑定手机</h4>
-                <p class="text-gray-500 text-sm">已绑定：{{ maskPhone(userInfo.phone) }}</p>
-              </div>
-              <el-button @click="showChangePhone = true">更换</el-button>
-            </div>
-
-            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h4 class="font-medium">绑定邮箱</h4>
-                <p class="text-gray-500 text-sm">已绑定：{{ maskEmail(userInfo.email) }}</p>
-              </div>
-              <el-button @click="showChangeEmail = true">更换</el-button>
+            <div class="text-center p-6 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl hover:from-orange-100 hover:to-orange-200 transition-all duration-300 transform hover:scale-105">
+              <p class="text-4xl font-bold text-orange-600">{{ stats.passRate }}%</p>
+              <p class="text-gray-600 mt-2">通过率</p>
             </div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- 修改密码对话框 -->
-    <el-dialog
-      v-model="showChangePassword"
-      title="修改密码"
-      width="400px"
-    >
-      <el-form :model="passwordForm" label-width="100px">
-        <el-form-item label="当前密码">
-          <el-input v-model="passwordForm.oldPassword" type="password" show-password />
-        </el-form-item>
-        <el-form-item label="新密码">
-          <el-input v-model="passwordForm.newPassword" type="password" show-password />
-        </el-form-item>
-        <el-form-item label="确认新密码">
-          <el-input v-model="passwordForm.confirmPassword" type="password" show-password />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showChangePassword = false">取消</el-button>
-          <el-button type="primary" @click="handleChangePassword">
-            确认修改
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 更换手机对话框 -->
-    <el-dialog
-      v-model="showChangePhone"
-      title="更换手机"
-      width="400px"
-    >
-      <el-form :model="phoneForm" label-width="100px">
-        <el-form-item label="新手机号">
-          <el-input v-model="phoneForm.phone" />
-        </el-form-item>
-        <el-form-item label="验证码">
-          <div class="flex gap-4">
-            <el-input v-model="phoneForm.code" />
-            <el-button 
-              type="primary" 
-              :disabled="!!countdown"
-              @click="sendPhoneCode"
-            >
-              {{ countdown ? `${countdown}s` : '获取验证码' }}
-            </el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showChangePhone = false">取消</el-button>
-          <el-button type="primary" @click="handleChangePhone">
-            确认更换
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <!-- 更换邮箱对话框 -->
-    <el-dialog
-      v-model="showChangeEmail"
-      title="更换邮箱"
-      width="400px"
-    >
-      <el-form :model="emailForm" label-width="100px">
-        <el-form-item label="新邮箱">
-          <el-input v-model="emailForm.email" />
-        </el-form-item>
-        <el-form-item label="验证码">
-          <div class="flex gap-4">
-            <el-input v-model="emailForm.code" />
-            <el-button 
-              type="primary" 
-              :disabled="!!countdown"
-              @click="sendEmailCode"
-            >
-              {{ countdown ? `${countdown}s` : '获取验证码' }}
-            </el-button>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showChangeEmail = false">取消</el-button>
-          <el-button type="primary" @click="handleChangeEmail">
-            确认更换
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
+<script setup>
+// 脚本逻辑与之前一致，保持不变
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { 
   Message, 
-  Iphone as Phone,
+  Iphone as Phone, 
   Location, 
-  House as Office,
-  Timer,
-  CircleCheckFilled as CircleCheck,
-  CircleCloseFilled as CircleClose,
-  Loading
+  DataAnalysis,
+  Edit,
+  Check
 } from '@element-plus/icons-vue'
 
-// 用户信息
-const userInfo = ref({
-  name: '李明',
-  title: '高级面试官',
-  email: 'liming@example.com',
-  phone: '13800138000',
-  location: '北京市朝阳区',
-  department: '技术部-面试组',
-  avatar: '',
-  skills: ['前端开发', 'Vue', 'React', 'Node.js', 'TypeScript']
-})
+const userInfo = ref({})
+const profileForm = ref({ name: '', email: '', phone: '', location: { province: '', city: '' } })
+const stats = ref({ total: 0, month: 0, avgScore: 0, passRate: 0 })
 
-// 面试统计
-const stats = ref({
-  totalInterviews: 86,
-  thisMonth: 12,
-  avgScore: 4.5,
-  passRate: 85
-})
-
-// 个人信息表单
-const profileForm = ref({
-  name: userInfo.value.name,
-  title: userInfo.value.title,
-  email: userInfo.value.email,
-  phone: userInfo.value.phone,
-  location: userInfo.value.location,
-  department: userInfo.value.department,
-  skills: userInfo.value.skills
-})
-
-// 专业领域选项
-const skillOptions = [
-  '前端开发',
-  '后端开发',
-  'Vue',
-  'React',
-  'Angular',
-  'Node.js',
-  'Python',
-  'Java',
-  'Go',
-  'TypeScript',
-  '微服务',
-  '架构设计',
-  '数据库',
-  '算法'
-]
-
-// 修改密码
-const showChangePassword = ref(false)
-const passwordForm = ref({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-// 更换手机
-const showChangePhone = ref(false)
-const phoneForm = ref({
-  phone: '',
-  code: ''
-})
-
-// 更换邮箱
-const showChangeEmail = ref(false)
-const emailForm = ref({
-  email: '',
-  code: ''
-})
-
-// 验证码倒计时
-const countdown = ref(0)
-
-// 保存个人信息
-const handleSaveProfile = () => {
-  ElMessage.success('保存成功')
-}
-
-// 修改密码
-const handleChangePassword = () => {
-  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    ElMessage.error('两次输入的密码不一致')
-    return
+const fetchProfile = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.get('/api/auth/profile', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.data.success) {
+      userInfo.value = res.data.user
+      if (!userInfo.value.location) userInfo.value.location = { province: '', city: '' }
+      profileForm.value = {
+        name: userInfo.value.name || '',
+        email: userInfo.value.email || '',
+        phone: userInfo.value.phone || '',
+        location: { ...userInfo.value.location }
+      }
+    }
+  } catch {
+    ElMessage.error('获取资料失败')
   }
-  ElMessage.success('密码修改成功')
-  showChangePassword.value = false
 }
 
-// 发送手机验证码
-const sendPhoneCode = () => {
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
+const fetchInterviewStats = async () => {
+  try {
+    const res = await axios.get('/api/apply/all')
+    const list = res.data || []
+    const passed = list.filter(app => app.status === '已通过' && app.interview_time)
+    const total = passed.length
+    const now = new Date()
+    
+    stats.value = {
+      total,
+      month: passed.filter(app => {
+        const d = new Date(app.interview_time)
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+      }).length,
+      avgScore: passed.length ? (passed.reduce((a, b) => a + (b.score || 0), 0) / passed.length).toFixed(1) : 0,
+      passRate: list.length ? ((passed.length / list.length) * 100).toFixed(1) : 0
     }
-  }, 1000)
-  ElMessage.success('验证码已发送')
+  } catch (e) {
+    console.error('获取面试统计失败', e)
+  }
 }
 
-// 发送邮箱验证码
-const sendEmailCode = () => {
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
-  ElMessage.success('验证码已发送')
+const saveProfile = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await axios.post('/api/auth/update', profileForm.value, { headers: { Authorization: `Bearer ${token}` } })
+    res.data.success ? ElMessage.success('资料更新成功') : ElMessage.error(res.data.message || '更新失败')
+    fetchProfile()
+  } catch {
+    ElMessage.error('更新失败')
+  }
 }
 
-// 更换手机
-const handleChangePhone = () => {
-  ElMessage.success('手机号更换成功')
-  showChangePhone.value = false
-}
-
-// 更换邮箱
-const handleChangeEmail = () => {
-  ElMessage.success('邮箱更换成功')
-  showChangeEmail.value = false
-}
-
-// 手机号脱敏
-const maskPhone = (phone: string) => {
-  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-}
-
-// 邮箱脱敏
-const maskEmail = (email: string) => {
-  const [name, domain] = email.split('@')
-  return `${name.charAt(0)}***@${domain}`
-}
+onMounted(() => {
+  fetchProfile()
+  fetchInterviewStats()
+})
 </script>
 
 <style scoped>
 .profile-page {
-  min-height: calc(100vh - 64px);
+  background-attachment: fixed;
 }
 
-:deep(.el-tag) {
-  margin: 2px;
+/* 卡片玻璃效果 */
+.bg-white {
+  backdrop-filter: blur(10px);
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
-:deep(.el-form-item) {
-  margin-bottom: 20px;
+/* 输入框样式优化 */
+:deep(.el-input__wrapper) {
+  height: 44px !important; /* 对应h-11 */
+  font-size: 16px !important; /* 对应text-base */
+}
+
+:deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--el-input-focus-border-color), 0 0 8px 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* 按钮样式优化 */
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border: none;
+}
+
+:deep(.el-button--primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 表单标签样式 */
+:deep(.el-form-item__label) {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+/* 统计卡片悬停动画 */
+.text-center:hover {
+  transform: translateY(-5px);
+}
+
+/* 头像动画 */
+.el-avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* 图标动画 */
+.el-icon {
+  transition: all 0.3s ease;
+}
+
+.el-icon:hover {
+  transform: scale(1.2);
 }
 </style>

@@ -40,16 +40,22 @@
             </el-menu-item>
             <el-menu-item index="/interviewer/create">
               <el-icon><Plus /></el-icon>
-              <span>创建面试</span>
+              <span>岗位信息</span>
             </el-menu-item>
             <el-menu-item index="/interviewer/schedule">
               <el-icon><Calendar /></el-icon>
-              <span>面试日程</span>
+              <span>审核简历</span>
             </el-menu-item>
             <el-menu-item index="/interviewer/history">
               <el-icon><List /></el-icon>
-              <span>历史记录</span>
+              <span>面试信息</span>
             </el-menu-item>
+
+            <el-menu-item index="/interviewer/results">
+              <el-icon><User /></el-icon>
+              <span>面试结果</span>
+            </el-menu-item>
+
             <el-menu-item index="/interviewer/profile">
               <el-icon><User /></el-icon>
               <span>个人信息</span>
